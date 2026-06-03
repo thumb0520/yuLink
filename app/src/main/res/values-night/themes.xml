@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.EasyConnect" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#90CAF9</item>
+        <item name="colorPrimaryVariant">#64B5F6</item>
+        <item name="colorOnPrimary">#003C8F</item>
+        <item name="colorSecondary">#80CBC4</item>
+        <item name="colorSecondaryVariant">#4DB6AC</item>
+        <item name="colorOnSecondary">#003D33</item>
+        <item name="android:colorBackground">#121212</item>
+        <item name="colorSurface">#1E1E1E</item>
+        <item name="colorError">#EF9A9A</item>
+        <item name="colorOnBackground">#E0E0E0</item>
+        <item name="colorOnSurface">#E0E0E0</item>
+        <item name="colorOnError">#690005</item>
+    </style>
+</resources>

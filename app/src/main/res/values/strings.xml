@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EasyConnect</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_connections">连接</string>
+    <string name="nav_browser">文件</string>
+    <string name="nav_transfers">传输</string>
+
+    <!-- Connection Manager -->
+    <string name="add_connection">添加连接</string>
+    <string name="edit_connection">编辑连接</string>
+    <string name="connection_name">连接名称</string>
+    <string name="protocol">协议</string>
+    <string name="host">主机地址</string>
+    <string name="port">端口</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="share_name">共享名称</string>
+    <string name="default_path">默认路径</string>
+    <string name="test_connection">测试连接</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="delete">删除</string>
+    <string name="connection_test_success">连接成功！</string>
+    <string name="connection_test_failed">连接失败</string>
+    <string name="connection_saved">连接已保存</string>
+    <string name="connection_deleted">连接已删除</string>
+    <string name="no_connections">暂无连接\n点击 + 添加NAS服务器</string>
+
+    <!-- File Browser -->
+    <string name="create_folder">新建文件夹</string>
+    <string name="rename">重命名</string>
+    <string name="move">移动</string>
+    <string name="properties">属性</string>
+    <string name="upload">上传</string>
+    <string name="download">下载</string>
+    <string name="refresh">刷新</string>
+    <string name="view_mode_list">列表视图</string>
+    <string name="view_mode_grid">网格视图</string>
+    <string name="sort_by_name">按名称排序</string>
+    <string name="sort_by_size">按大小排序</string>
+    <string name="sort_by_date">按日期排序</string>
+    <string name="folder_name_hint">文件夹名称</string>
+    <string name="new_name_hint">新名称</string>
+    <string name="no_files">此文件夹为空</string>
+    <string name="selected_count">已选择 %d 项</string>
+    <string name="confirm_delete">确认删除</string>
+    <string name="confirm_delete_message">确定要删除选中的文件吗？</string>
+
+    <!-- Transfer -->
+    <string name="transfer_uploading">上传中</string>
+    <string name="transfer_downloading">下载中</string>
+    <string name="transfer_completed">传输完成</string>
+    <string name="transfer_failed">传输失败</string>
+    <string name="transfer_cancelled">已取消</string>
+    <string name="no_transfers">暂无传输任务</string>
+    <string name="clear_completed">清除已完成</string>
+    <string name="transfer_notification_channel">文件传输</string>
+
+    <!-- Preview -->
+    <string name="image_preview">图片预览</string>
+    <string name="video_player">视频播放</string>
+    <string name="audio_player">音乐播放</string>
+
+    <!-- Settings -->
+    <string name="settings">设置</string>
+    <string name="download_location">下载位置</string>
+    <string name="theme">主题</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="theme_system">跟随系统</string>
+    <string name="max_concurrent_transfers">最大并发传输数</string>
+    <string name="connection_timeout">连接超时（秒）</string>
+
+    <!-- File Properties -->
+    <string name="file_name">文件名</string>
+    <string name="file_size">大小</string>
+    <string name="file_type">类型</string>
+    <string name="file_modified">修改时间</string>
+    <string name="file_permissions">权限</string>
+    <string name="file_path">路径</string>
+
+    <!-- Errors -->
+    <string name="error_network">网络错误，请检查连接</string>
+    <string name="error_auth">认证失败，请检查用户名和密码</string>
+    <string name="error_connection">无法连接到服务器</string>
+    <string name="error_permission">权限被拒绝</string>
+</resources>
