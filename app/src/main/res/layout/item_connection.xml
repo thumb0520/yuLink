@@ -53,7 +53,7 @@
             app:chipMinHeight="24dp"
             app:layout_constraintStart_toEndOf="@id/iv_protocol_icon"
             app:layout_constraintTop_toBottomOf="@id/tv_host"
-            app:textAppearance="?attr/textAppearanceLabelSmall" />
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
 
         <TextView
             android:id="@+id/tv_last_connected"
