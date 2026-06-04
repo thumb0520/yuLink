@@ -14,12 +14,10 @@ import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -77,13 +75,13 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        viewModel = new ViewModelProvider(this).get(FileBrowserViewModel.class);
+        // Use activity scope so ViewModel survives tab switches
+        viewModel = new ViewModelProvider(requireActivity()).get(FileBrowserViewModel.class);
 
         initViews(view);
         setupRecyclerView();
         setupButtons();
         setupObservers();
-        setupBackPress();
 
         // Bind transfer service (don't start foreground yet — only when a transfer is enqueued)
         Intent serviceIntent = new Intent(requireContext(), TransferService.class);
@@ -92,7 +90,11 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         // Get connection ID from arguments
         long connectionId = getArguments() != null ? getArguments().getLong("connectionId", -1) : -1;
         if (connectionId > 0) {
-            viewModel.connectToServer(connectionId);
+            if (!viewModel.isConnectedTo(connectionId)) {
+                // New connection or not connected, connect fresh
+                viewModel.connectToServer(connectionId);
+            }
+            // else: already connected, LiveData observers will pick up cached state automatically
         } else {
             tvEmpty.setText("请先选择一个NAS连接");
             tvEmpty.setVisibility(View.VISIBLE);
@@ -110,29 +112,16 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         tvSelectedCount = view.findViewById(R.id.tv_selected_count);
 
         ImageButton btnBack = view.findViewById(R.id.btn_back);
-        btnBack.setOnClickListener(v -> handleBackPress());
-    }
-
-    private void setupBackPress() {
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(),
-                new OnBackPressedCallback(true) {
-                    @Override
-                    public void handleOnBackPressed() {
-                        handleBackPress();
-                    }
-                });
-    }
-
-    private void handleBackPress() {
-        if (selectionMode) {
-            exitSelectionMode();
-        } else if (isAtRoot()) {
-            // Pop back to connection list
-            Navigation.findNavController(requireView())
-                    .popBackStack(R.id.connectionListFragment, false);
-        } else {
-            viewModel.navigateUp();
-        }
+        btnBack.setOnClickListener(v -> {
+            if (selectionMode) {
+                exitSelectionMode();
+            } else if (isAtRoot()) {
+                // Switch back to connection tab
+                requireActivity().onBackPressed();
+            } else {
+                viewModel.navigateUp();
+            }
+        });
     }
 
     private boolean isAtRoot() {

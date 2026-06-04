@@ -13,7 +13,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.Navigation;
 
 import com.yulink.nas.R;
 import com.yulink.nas.data.db.entity.ConnectionEntity;
@@ -62,7 +61,7 @@ public class AddConnectionFragment extends Fragment {
 
     private void initViews(View view) {
         ImageButton btnBack = view.findViewById(R.id.btn_back);
-        btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+        btnBack.setOnClickListener(v -> dismiss());
 
         tvTitle = view.findViewById(R.id.tv_title);
         btnSave = view.findViewById(R.id.btn_save);
@@ -183,7 +182,7 @@ public class AddConnectionFragment extends Fragment {
         viewModel.getSaveResult().observe(getViewLifecycleOwner(), success -> {
             if (success) {
                 Snackbar.make(requireView(), R.string.connection_saved, Snackbar.LENGTH_SHORT).show();
-                Navigation.findNavController(requireView()).navigateUp();
+                dismiss();
             }
         });
 
@@ -265,6 +264,12 @@ public class AddConnectionFragment extends Fragment {
         }
 
         return valid;
+    }
+
+    private void dismiss() {
+        getParentFragmentManager().popBackStack();
+        // Restore bottom nav visibility
+        requireActivity().findViewById(R.id.bottom_navigation).setVisibility(View.VISIBLE);
     }
 
     private ProtocolType getSelectedProtocol() {

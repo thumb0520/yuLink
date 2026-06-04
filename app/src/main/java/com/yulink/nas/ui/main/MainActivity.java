@@ -3,20 +3,28 @@ package com.yulink.nas.ui.main;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.navigation.NavController;
-import androidx.navigation.fragment.NavHostFragment;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.yulink.nas.R;
+import com.yulink.nas.ui.browser.FileBrowserFragment;
+import com.yulink.nas.ui.connection.ConnectionListFragment;
+import com.yulink.nas.ui.transfer.TransferQueueFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ConnectionListFragment.Callbacks {
 
     private static final int REQUEST_NOTIFICATION_PERMISSION = 1001;
-    private NavController navController;
+
+    private ConnectionListFragment connectionListFragment;
+    private FileBrowserFragment fileBrowserFragment;
+    private TransferQueueFragment transferQueueFragment;
+    private Fragment currentTab;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         requestNotificationPermission();
+        setupFragments();
         setupNavigation();
     }
 
@@ -38,73 +47,114 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setupFragments() {
+        connectionListFragment = new ConnectionListFragment();
+        fileBrowserFragment = new FileBrowserFragment();
+        transferQueueFragment = new TransferQueueFragment();
+
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.add(R.id.tab_container, connectionListFragment, "connection");
+        ft.add(R.id.tab_container, fileBrowserFragment, "file_browser");
+        ft.add(R.id.tab_container, transferQueueFragment, "transfer");
+        ft.hide(fileBrowserFragment);
+        ft.hide(transferQueueFragment);
+        ft.show(connectionListFragment);
+        ft.commit();
+
+        currentTab = connectionListFragment;
+    }
+
     private void setupNavigation() {
-        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.nav_host_fragment);
-        if (navHostFragment != null) {
-            navController = navHostFragment.getNavController();
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
 
-            BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setOnItemSelectedListener(item -> {
+            int itemId = item.getItemId();
+            if (itemId == R.id.connectionListFragment) {
+                switchTab(connectionListFragment);
+            } else if (itemId == R.id.fileBrowserFragment) {
+                switchTab(fileBrowserFragment);
+            } else if (itemId == R.id.transferQueueFragment) {
+                switchTab(transferQueueFragment);
+            }
+            return true;
+        });
+    }
 
-            // Handle bottom nav tab selection manually for proper back stack management
-            bottomNav.setOnItemSelectedListener(item -> {
-                int itemId = item.getItemId();
-                int currentId = navController.getCurrentDestination().getId();
+    private void switchTab(Fragment target) {
+        if (target == currentTab) return;
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.hide(currentTab);
+        ft.show(target);
+        ft.commit();
+        currentTab = target;
+    }
 
-                if (itemId == R.id.connectionListFragment) {
-                    // "连接" tab: pop back to connection list
-                    if (currentId != R.id.connectionListFragment) {
-                        navController.popBackStack(R.id.connectionListFragment, false);
-                    }
-                    return true;
-                } else if (itemId == R.id.fileBrowserFragment) {
-                    // "文件" tab: do nothing (file browser is opened from connection list)
-                    return true;
-                } else if (itemId == R.id.transferQueueFragment) {
-                    // "传输" tab: navigate to transfer queue
-                    if (currentId != R.id.transferQueueFragment) {
-                        navController.navigate(R.id.transferQueueFragment);
-                    }
-                    return true;
-                }
-                return false;
-            });
-
-            // Hide bottom nav on certain destinations
-            navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
-                int id = destination.getId();
-                if (id == R.id.addConnectionFragment || id == R.id.settingsFragment) {
-                    bottomNav.setVisibility(android.view.View.GONE);
-                } else {
-                    bottomNav.setVisibility(android.view.View.VISIBLE);
-                    // Sync bottom nav selection with current destination
-                    if (id == R.id.connectionListFragment) {
-                        bottomNav.setSelectedItemId(R.id.connectionListFragment);
-                    } else if (id == R.id.fileBrowserFragment) {
-                        bottomNav.setSelectedItemId(R.id.fileBrowserFragment);
-                    } else if (id == R.id.transferQueueFragment) {
-                        bottomNav.setSelectedItemId(R.id.transferQueueFragment);
-                    }
-                }
-            });
+    // ConnectionListFragment.Callbacks — called when user selects a connection
+    @Override
+    public void onConnectionSelected(long connectionId) {
+        Bundle args = new Bundle();
+        args.putLong("connectionId", connectionId);
+        // Remove old file browser and add new one in a single transaction
+        getSupportFragmentManager().beginTransaction()
+                .remove(fileBrowserFragment)
+                .commit();
+        fileBrowserFragment = new FileBrowserFragment();
+        fileBrowserFragment.setArguments(args);
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.add(R.id.tab_container, fileBrowserFragment, "file_browser");
+        if (currentTab != fileBrowserFragment) {
+            ft.hide(currentTab);
         }
+        ft.show(fileBrowserFragment);
+        ft.commit();
+        currentTab = fileBrowserFragment;
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setSelectedItemId(R.id.fileBrowserFragment);
+    }
+
+    // ConnectionListFragment.Callbacks — called when user taps FAB to add connection
+    @Override
+    public void onAddConnectionRequested() {
+        com.yulink.nas.ui.connection.AddConnectionFragment fragment =
+                new com.yulink.nas.ui.connection.AddConnectionFragment();
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.tab_container, fragment, "add_connection")
+                .addToBackStack("add_connection")
+                .commit();
+        // Hide bottom nav for overlay
+        findViewById(R.id.bottom_navigation).setVisibility(View.GONE);
+    }
+
+    // ConnectionListFragment.Callbacks — called when user taps edit on a connection
+    @Override
+    public void onEditConnectionRequested(long connectionId) {
+        com.yulink.nas.ui.connection.AddConnectionFragment fragment =
+                new com.yulink.nas.ui.connection.AddConnectionFragment();
+        Bundle args = new Bundle();
+        args.putLong("connectionId", connectionId);
+        fragment.setArguments(args);
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.tab_container, fragment, "add_connection")
+                .addToBackStack("add_connection")
+                .commit();
+        findViewById(R.id.bottom_navigation).setVisibility(View.GONE);
     }
 
     @Override
     public void onBackPressed() {
-        if (navController != null && navController.getCurrentDestination() != null) {
-            int currentId = navController.getCurrentDestination().getId();
-            // On file browser, pop back to connection list
-            if (currentId == R.id.fileBrowserFragment) {
-                navController.popBackStack(R.id.connectionListFragment, false);
-                return;
-            }
+        // If overlay fragments are in back stack, pop them
+        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+            getSupportFragmentManager().popBackStack();
+            findViewById(R.id.bottom_navigation).setVisibility(View.VISIBLE);
+            return;
         }
-        super.onBackPressed();
-    }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        return navController != null && navController.navigateUp() || super.onSupportNavigateUp();
+        // On connection tab, exit app
+        if (currentTab == connectionListFragment) {
+            super.onBackPressed();
+            return;
+        }
+        // On other tabs, go back to connection tab
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
+        bottomNav.setSelectedItemId(R.id.connectionListFragment);
     }
 }

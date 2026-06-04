@@ -231,6 +231,14 @@ public class FileBrowserViewModel extends AndroidViewModel {
         });
     }
 
+    /**
+     * Check if already connected to the given connection.
+     */
+    public boolean isConnectedTo(long connectionId) {
+        return connectionInfo != null && connectionInfo.getId() == connectionId
+                && protocolManager != null && protocolManager.isConnected();
+    }
+
     public ConnectionInfo getConnectionInfo() {
         return connectionInfo;
     }

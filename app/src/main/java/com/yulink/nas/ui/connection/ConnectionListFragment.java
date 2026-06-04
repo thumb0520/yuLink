@@ -1,5 +1,6 @@
 package com.yulink.nas.ui.connection;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,21 +11,37 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.yulink.nas.R;
 import com.yulink.nas.data.db.entity.ConnectionEntity;
 import com.yulink.nas.ui.connection.adapter.ConnectionAdapter;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 public class ConnectionListFragment extends Fragment implements ConnectionAdapter.OnConnectionClickListener {
+
+    public interface Callbacks {
+        void onConnectionSelected(long connectionId);
+        void onAddConnectionRequested();
+        void onEditConnectionRequested(long connectionId);
+    }
+
+    private Callbacks callbacks;
     private ConnectionListViewModel viewModel;
     private ConnectionAdapter adapter;
     private RecyclerView recyclerView;
     private TextView tvEmpty;
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        if (context instanceof Callbacks) {
+            callbacks = (Callbacks) context;
+        }
+    }
 
     @Nullable
     @Override
@@ -54,27 +71,31 @@ public class ConnectionListFragment extends Fragment implements ConnectionAdapte
         });
 
         fab.setOnClickListener(v -> {
-            Navigation.findNavController(v).navigate(R.id.action_connectionList_to_addConnection);
+            if (callbacks != null) {
+                callbacks.onAddConnectionRequested();
+            }
         });
     }
 
     @Override
     public void onConnectionClick(ConnectionEntity connection) {
         viewModel.updateLastConnected(connection.id);
-        Bundle args = new Bundle();
-        args.putLong("connectionId", connection.id);
-        Navigation.findNavController(requireView()).navigate(R.id.action_connectionList_to_fileBrowser, args);
+        if (callbacks != null) {
+            callbacks.onConnectionSelected(connection.id);
+        }
     }
 
     @Override
     public void onConnectionLongClick(ConnectionEntity connection) {
         String[] options = {getString(R.string.edit_connection), getString(R.string.delete)};
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(connection.name)
                 .setItems(options, (dialog, which) -> {
                     switch (which) {
                         case 0: // Edit
-                            editConnection(connection);
+                            if (callbacks != null) {
+                                callbacks.onEditConnectionRequested(connection.id);
+                            }
                             break;
                         case 1: // Delete
                             confirmDeleteConnection(connection);
@@ -84,14 +105,8 @@ public class ConnectionListFragment extends Fragment implements ConnectionAdapte
                 .show();
     }
 
-    private void editConnection(ConnectionEntity connection) {
-        Bundle args = new Bundle();
-        args.putLong("connectionId", connection.id);
-        Navigation.findNavController(requireView()).navigate(R.id.action_connectionList_to_addConnection, args);
-    }
-
     private void confirmDeleteConnection(ConnectionEntity connection) {
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.delete)
                 .setMessage(getString(R.string.confirm_delete_message))
                 .setPositiveButton(R.string.delete, (dialog, which) -> {
