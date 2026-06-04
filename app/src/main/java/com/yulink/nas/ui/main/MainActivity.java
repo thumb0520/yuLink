@@ -9,7 +9,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.NavigationUI;
 
 import com.yulink.nas.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -46,7 +45,30 @@ public class MainActivity extends AppCompatActivity {
             navController = navHostFragment.getNavController();
 
             BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
-            NavigationUI.setupWithNavController(bottomNav, navController);
+
+            // Handle bottom nav tab selection manually for proper back stack management
+            bottomNav.setOnItemSelectedListener(item -> {
+                int itemId = item.getItemId();
+                int currentId = navController.getCurrentDestination().getId();
+
+                if (itemId == R.id.connectionListFragment) {
+                    // "连接" tab: pop back to connection list
+                    if (currentId != R.id.connectionListFragment) {
+                        navController.popBackStack(R.id.connectionListFragment, false);
+                    }
+                    return true;
+                } else if (itemId == R.id.fileBrowserFragment) {
+                    // "文件" tab: do nothing (file browser is opened from connection list)
+                    return true;
+                } else if (itemId == R.id.transferQueueFragment) {
+                    // "传输" tab: navigate to transfer queue
+                    if (currentId != R.id.transferQueueFragment) {
+                        navController.navigate(R.id.transferQueueFragment);
+                    }
+                    return true;
+                }
+                return false;
+            });
 
             // Hide bottom nav on certain destinations
             navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
@@ -55,9 +77,30 @@ public class MainActivity extends AppCompatActivity {
                     bottomNav.setVisibility(android.view.View.GONE);
                 } else {
                     bottomNav.setVisibility(android.view.View.VISIBLE);
+                    // Sync bottom nav selection with current destination
+                    if (id == R.id.connectionListFragment) {
+                        bottomNav.setSelectedItemId(R.id.connectionListFragment);
+                    } else if (id == R.id.fileBrowserFragment) {
+                        bottomNav.setSelectedItemId(R.id.fileBrowserFragment);
+                    } else if (id == R.id.transferQueueFragment) {
+                        bottomNav.setSelectedItemId(R.id.transferQueueFragment);
+                    }
                 }
             });
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (navController != null && navController.getCurrentDestination() != null) {
+            int currentId = navController.getCurrentDestination().getId();
+            // On file browser, pop back to connection list
+            if (currentId == R.id.fileBrowserFragment) {
+                navController.popBackStack(R.id.connectionListFragment, false);
+                return;
+            }
+        }
+        super.onBackPressed();
     }
 
     @Override

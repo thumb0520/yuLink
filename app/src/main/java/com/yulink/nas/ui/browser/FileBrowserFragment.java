@@ -14,6 +14,7 @@ import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -82,6 +83,7 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         setupRecyclerView();
         setupButtons();
         setupObservers();
+        setupBackPress();
 
         // Bind transfer service (don't start foreground yet — only when a transfer is enqueued)
         Intent serviceIntent = new Intent(requireContext(), TransferService.class);
@@ -108,13 +110,36 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         tvSelectedCount = view.findViewById(R.id.tv_selected_count);
 
         ImageButton btnBack = view.findViewById(R.id.btn_back);
-        btnBack.setOnClickListener(v -> {
-            if (selectionMode) {
-                exitSelectionMode();
-            } else {
-                viewModel.navigateUp();
-            }
-        });
+        btnBack.setOnClickListener(v -> handleBackPress());
+    }
+
+    private void setupBackPress() {
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(),
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        handleBackPress();
+                    }
+                });
+    }
+
+    private void handleBackPress() {
+        if (selectionMode) {
+            exitSelectionMode();
+        } else if (isAtRoot()) {
+            // Pop back to connection list
+            Navigation.findNavController(requireView())
+                    .popBackStack(R.id.connectionListFragment, false);
+        } else {
+            viewModel.navigateUp();
+        }
+    }
+
+    private boolean isAtRoot() {
+        String path = viewModel.getCurrentPath().getValue();
+        if (path == null) return true;
+        String normalized = path.replace("\\", "/");
+        return "/".equals(normalized) || normalized.isEmpty();
     }
 
     private void setupRecyclerView() {

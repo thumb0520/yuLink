@@ -15,7 +15,9 @@
             app:destination="@id/addConnectionFragment" />
         <action
             android:id="@+id/action_connectionList_to_fileBrowser"
-            app:destination="@id/fileBrowserFragment" />
+            app:destination="@id/fileBrowserFragment"
+            app:popUpTo="@id/connectionListFragment"
+            app:popUpToInclusive="false" />
     </fragment>
 
     <fragment
