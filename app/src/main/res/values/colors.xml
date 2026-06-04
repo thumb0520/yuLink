@@ -1,30 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#1976D2</color>
-    <color name="primary_variant">#1565C0</color>
+    <!-- iOS-style colors -->
+    <color name="primary">#007AFF</color>
+    <color name="primary_variant">#0056CC</color>
     <color name="on_primary">#FFFFFF</color>
-    <color name="secondary">#26A69A</color>
-    <color name="secondary_variant">#00897B</color>
+    <color name="secondary">#5856D6</color>
+    <color name="secondary_variant">#4240B0</color>
     <color name="on_secondary">#FFFFFF</color>
-    <color name="background">#FAFAFA</color>
+
+    <!-- Background - iOS style light gray -->
+    <color name="background">#F2F2F7</color>
     <color name="surface">#FFFFFF</color>
-    <color name="error">#D32F2F</color>
-    <color name="on_background">#212121</color>
-    <color name="on_surface">#212121</color>
+    <color name="error">#FF3B30</color>
+    <color name="on_background">#1C1C1E</color>
+    <color name="on_surface">#1C1C1E</color>
     <color name="on_error">#FFFFFF</color>
 
-    <!-- File type colors -->
-    <color name="file_image">#4CAF50</color>
-    <color name="file_video">#FF9800</color>
-    <color name="file_audio">#9C27B0</color>
-    <color name="file_document">#2196F3</color>
-    <color name="file_archive">#795548</color>
-    <color name="file_folder">#FFC107</color>
-    <color name="file_default">#607D8B</color>
+    <!-- iOS system colors -->
+    <color name="system_gray">#8E8E93</color>
+    <color name="system_gray2">#AEAEB2</color>
+    <color name="system_gray3">#C7C7CC</color>
+    <color name="system_gray4">#D1D1D6</color>
+    <color name="system_gray5">#E5E5EA</color>
+    <color name="system_gray6">#F2F2F7</color>
+
+    <!-- iOS semantic colors -->
+    <color name="label">#000000</color>
+    <color name="secondary_label">#3C3C43</color>
+    <color name="tertiary_label">#3C3C4399</color>
+    <color name="quaternary_label">#3C3C434D</color>
+    <color name="separator">#3C3C4349</color>
+
+    <!-- File type colors - iOS style -->
+    <color name="file_image">#FF9500</color>
+    <color name="file_video">#FF2D55</color>
+    <color name="file_audio">#AF52DE</color>
+    <color name="file_document">#007AFF</color>
+    <color name="file_archive">#8E8E93</color>
+    <color name="file_folder">#007AFF</color>
+    <color name="file_default">#8E8E93</color>
 
     <!-- Transfer status colors -->
-    <color name="transfer_pending">#9E9E9E</color>
-    <color name="transfer_running">#2196F3</color>
-    <color name="transfer_completed">#4CAF50</color>
-    <color name="transfer_failed">#F44336</color>
+    <color name="transfer_pending">#8E8E93</color>
+    <color name="transfer_running">#007AFF</color>
+    <color name="transfer_completed">#34C759</color>
+    <color name="transfer_failed">#FF3B30</color>
 </resources>

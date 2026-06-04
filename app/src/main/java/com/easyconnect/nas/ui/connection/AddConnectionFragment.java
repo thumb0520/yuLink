@@ -4,8 +4,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,21 +18,19 @@ import androidx.navigation.Navigation;
 import com.easyconnect.nas.R;
 import com.easyconnect.nas.data.db.entity.ConnectionEntity;
 import com.easyconnect.nas.data.model.ProtocolType;
-import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 
 public class AddConnectionFragment extends Fragment {
     private AddConnectionViewModel viewModel;
-    private TextInputEditText etName, etHost, etPort, etUsername, etPassword, etShareName, etDefaultPath;
-    private AutoCompleteTextView spinnerProtocol;
-    private TextInputLayout tilShareName, tilPort;
+    private EditText etName, etHost, etPort, etUsername, etPassword, etShareName, etDefaultPath;
+    private TextView spinnerProtocol;
+    private LinearLayout layoutShareName;
+    private MaterialCardView cardOptions;
     private MaterialSwitch switchPassive, switchFtps, switchSmbEncryption;
-    private MaterialButton btnTest, btnSave, btnCancel;
+    private TextView btnSave, tvTitle;
     private long editConnectionId = -1;
 
     @Nullable
@@ -61,8 +61,11 @@ public class AddConnectionFragment extends Fragment {
     }
 
     private void initViews(View view) {
-        MaterialToolbar toolbar = view.findViewById(R.id.toolbar);
-        toolbar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+        ImageButton btnBack = view.findViewById(R.id.btn_back);
+        btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+
+        tvTitle = view.findViewById(R.id.tv_title);
+        btnSave = view.findViewById(R.id.btn_save);
 
         etName = view.findViewById(R.id.et_name);
         spinnerProtocol = view.findViewById(R.id.spinner_protocol);
@@ -72,52 +75,62 @@ public class AddConnectionFragment extends Fragment {
         etPassword = view.findViewById(R.id.et_password);
         etShareName = view.findViewById(R.id.et_share_name);
         etDefaultPath = view.findViewById(R.id.et_default_path);
-        tilShareName = view.findViewById(R.id.til_share_name);
-        tilPort = view.findViewById(R.id.til_port);
+
+        layoutShareName = view.findViewById(R.id.layout_share_name);
+        cardOptions = view.findViewById(R.id.card_options);
+
         switchPassive = view.findViewById(R.id.switch_passive);
         switchFtps = view.findViewById(R.id.switch_ftps);
         switchSmbEncryption = view.findViewById(R.id.switch_smb_encryption);
-        btnTest = view.findViewById(R.id.btn_test);
-        btnSave = view.findViewById(R.id.btn_save);
-        btnCancel = view.findViewById(R.id.btn_cancel);
     }
 
     private void setupProtocolSpinner() {
         ProtocolType[] protocols = ProtocolType.values();
-        String[] protocolNames = new String[protocols.length];
-        for (int i = 0; i < protocols.length; i++) {
-            protocolNames[i] = protocols[i].getDisplayName();
-        }
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
-                android.R.layout.simple_dropdown_item_1line, protocolNames);
-        spinnerProtocol.setAdapter(adapter);
-        spinnerProtocol.setText(protocols[0].getDisplayName(), false);
+        spinnerProtocol.setText(protocols[0].getDisplayName());
         updateProtocolFields(protocols[0]);
 
-        spinnerProtocol.setOnItemClickListener((parent, view, position, id) -> {
-            updateProtocolFields(protocols[position]);
-        });
+        // iOS style - show bottom sheet picker on click
+        spinnerProtocol.setOnClickListener(v -> showProtocolPicker(protocols));
+        spinnerProtocol.setFocusable(false);
+        spinnerProtocol.setCursorVisible(false);
+    }
+
+    private void showProtocolPicker(ProtocolType[] protocols) {
+        String[] protocolNames = new String[protocols.length];
+        for (int i = 0; i < protocols.length; i++) {
+            protocolNames[i] = protocols[i].getDisplayName() + " (端口 " + protocols[i].getDefaultPort() + ")";
+        }
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("选择协议")
+                .setItems(protocolNames, (dialog, which) -> {
+                    spinnerProtocol.setText(protocols[which].getDisplayName());
+                    updateProtocolFields(protocols[which]);
+                })
+                .show();
     }
 
     private void updateProtocolFields(ProtocolType protocol) {
+        // Show options section
+        cardOptions.setVisibility(View.VISIBLE);
+
         switch (protocol) {
             case SMB:
-                tilShareName.setVisibility(View.VISIBLE);
+                layoutShareName.setVisibility(View.VISIBLE);
                 switchSmbEncryption.setVisibility(View.VISIBLE);
                 switchPassive.setVisibility(View.GONE);
                 switchFtps.setVisibility(View.GONE);
                 etPort.setText(String.valueOf(ProtocolType.SMB.getDefaultPort()));
                 break;
             case FTP:
-                tilShareName.setVisibility(View.GONE);
+                layoutShareName.setVisibility(View.GONE);
                 switchSmbEncryption.setVisibility(View.GONE);
                 switchPassive.setVisibility(View.VISIBLE);
                 switchFtps.setVisibility(View.VISIBLE);
                 etPort.setText(String.valueOf(ProtocolType.FTP.getDefaultPort()));
                 break;
             case SFTP:
-                tilShareName.setVisibility(View.GONE);
+                layoutShareName.setVisibility(View.GONE);
                 switchSmbEncryption.setVisibility(View.GONE);
                 switchPassive.setVisibility(View.GONE);
                 switchFtps.setVisibility(View.GONE);
@@ -127,33 +140,12 @@ public class AddConnectionFragment extends Fragment {
     }
 
     private void setupListeners() {
-        btnTest.setOnClickListener(v -> {
-            if (validateInputs()) {
-                btnTest.setEnabled(false);
-                btnTest.setText("测试中...");
-                ProtocolType protocol = getSelectedProtocol();
-                viewModel.testConnection(
-                        etName.getText().toString(),
-                        protocol,
-                        etHost.getText().toString(),
-                        Integer.parseInt(etPort.getText().toString()),
-                        etUsername.getText().toString(),
-                        etPassword.getText().toString(),
-                        etShareName.getText() != null ? etShareName.getText().toString() : "",
-                        switchPassive.isChecked(),
-                        switchFtps.isChecked(),
-                        switchSmbEncryption.isChecked()
-                );
-            }
-        });
-
         btnSave.setOnClickListener(v -> {
             if (validateInputs()) {
                 ProtocolType protocol = getSelectedProtocol();
                 String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
 
                 if (editConnectionId > 0) {
-                    // Update existing connection
                     viewModel.updateConnection(
                             editConnectionId,
                             etName.getText().toString(),
@@ -169,7 +161,6 @@ public class AddConnectionFragment extends Fragment {
                             switchSmbEncryption.isChecked()
                     );
                 } else {
-                    // Create new connection
                     viewModel.saveConnection(
                             etName.getText().toString(),
                             protocol,
@@ -186,19 +177,9 @@ public class AddConnectionFragment extends Fragment {
                 }
             }
         });
-
-        btnCancel.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
     }
 
     private void setupObservers() {
-        viewModel.getTestResult().observe(getViewLifecycleOwner(), success -> {
-            btnTest.setEnabled(true);
-            btnTest.setText(R.string.test_connection);
-            if (success) {
-                Snackbar.make(requireView(), R.string.connection_test_success, Snackbar.LENGTH_SHORT).show();
-            }
-        });
-
         viewModel.getSaveResult().observe(getViewLifecycleOwner(), success -> {
             if (success) {
                 Snackbar.make(requireView(), R.string.connection_saved, Snackbar.LENGTH_SHORT).show();
@@ -209,7 +190,7 @@ public class AddConnectionFragment extends Fragment {
         viewModel.getError().observe(getViewLifecycleOwner(), errorMsg -> {
             if (errorMsg != null) {
                 new MaterialAlertDialogBuilder(requireContext())
-                        .setTitle(R.string.connection_test_failed)
+                        .setTitle("错误")
                         .setMessage(errorMsg)
                         .setPositiveButton(android.R.string.ok, null)
                         .show();
@@ -225,14 +206,7 @@ public class AddConnectionFragment extends Fragment {
 
     private void loadConnection(long connectionId) {
         viewModel.loadConnection(connectionId);
-        MaterialToolbar toolbar = requireView().findViewById(R.id.toolbar);
-        toolbar.setTitle(R.string.edit_connection);
-        btnSave.setText(R.string.save);
-
-        // Add helper text for password field in edit mode
-        TextInputLayout tilPassword = requireView().findViewById(R.id.til_password);
-        tilPassword.setHelperText("留空表示不修改密码");
-        tilPassword.setHelperTextEnabled(true);
+        tvTitle.setText(R.string.edit_connection);
     }
 
     private void populateFields(ConnectionEntity connection) {
@@ -249,11 +223,14 @@ public class AddConnectionFragment extends Fragment {
         // Set protocol
         for (ProtocolType type : ProtocolType.values()) {
             if (type == connection.protocol) {
-                spinnerProtocol.setText(type.getDisplayName(), false);
+                spinnerProtocol.setText(type.getDisplayName());
                 updateProtocolFields(type);
                 break;
             }
         }
+
+        // Update password hint
+        etPassword.setHint("留空表示不修改密码");
     }
 
     private boolean validateInputs() {

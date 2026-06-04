@@ -1,17 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- iOS Dark Mode Colors -->
+    <color name="background_dark">#000000</color>
+    <color name="surface_dark">#1C1C1E</color>
+    <color name="label_dark">#FFFFFF</color>
+    <color name="secondary_label_dark">#EBEBF5</color>
+    <color name="separator_dark">#38383A</color>
+    <color name="system_gray_dark">#8E8E93</color>
+    <color name="system_gray2_dark">#636366</color>
+    <color name="system_gray3_dark">#48484A</color>
+    <color name="system_gray4_dark">#3A3A3C</color>
+    <color name="system_gray5_dark">#2C2C2E</color>
+    <color name="system_gray6_dark">#1C1C1E</color>
+
     <style name="Theme.EasyConnect" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">#90CAF9</item>
-        <item name="colorPrimaryVariant">#64B5F6</item>
-        <item name="colorOnPrimary">#003C8F</item>
-        <item name="colorSecondary">#80CBC4</item>
-        <item name="colorSecondaryVariant">#4DB6AC</item>
-        <item name="colorOnSecondary">#003D33</item>
-        <item name="android:colorBackground">#121212</item>
-        <item name="colorSurface">#1E1E1E</item>
-        <item name="colorError">#EF9A9A</item>
-        <item name="colorOnBackground">#E0E0E0</item>
-        <item name="colorOnSurface">#E0E0E0</item>
-        <item name="colorOnError">#690005</item>
+        <!-- Primary colors -->
+        <item name="colorPrimary">#0A84FF</item>
+        <item name="colorPrimaryVariant">#409CFF</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+
+        <!-- Secondary colors -->
+        <item name="colorSecondary">#5E5CE6</item>
+        <item name="colorSecondaryVariant">#7B79E8</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+
+        <!-- Background -->
+        <item name="android:colorBackground">@color/background_dark</item>
+        <item name="colorSurface">@color/surface_dark</item>
+        <item name="colorError">#FF453A</item>
+        <item name="colorOnBackground">@color/label_dark</item>
+        <item name="colorOnSurface">@color/label_dark</item>
+        <item name="colorOnError">#FFFFFF</item>
     </style>
 </resources>

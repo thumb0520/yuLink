@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.easyconnect.nas.R;
 import com.easyconnect.nas.data.db.entity.ConnectionEntity;
 import com.easyconnect.nas.data.model.ProtocolType;
-import com.google.android.material.chip.Chip;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -64,7 +63,7 @@ public class ConnectionAdapter extends ListAdapter<ConnectionEntity, ConnectionA
         private final ImageView ivProtocolIcon;
         private final TextView tvConnectionName;
         private final TextView tvHost;
-        private final Chip chipProtocol;
+        private final TextView tvProtocol;
         private final TextView tvLastConnected;
 
         ViewHolder(@NonNull View itemView) {
@@ -72,14 +71,14 @@ public class ConnectionAdapter extends ListAdapter<ConnectionEntity, ConnectionA
             ivProtocolIcon = itemView.findViewById(R.id.iv_protocol_icon);
             tvConnectionName = itemView.findViewById(R.id.tv_connection_name);
             tvHost = itemView.findViewById(R.id.tv_host);
-            chipProtocol = itemView.findViewById(R.id.chip_protocol);
+            tvProtocol = itemView.findViewById(R.id.chip_protocol);
             tvLastConnected = itemView.findViewById(R.id.tv_last_connected);
         }
 
         void bind(ConnectionEntity connection) {
             tvConnectionName.setText(connection.name);
             tvHost.setText(connection.host + ":" + connection.port);
-            chipProtocol.setText(connection.protocol.getDisplayName());
+            tvProtocol.setText(connection.protocol.getDisplayName());
 
             int iconRes;
             switch (connection.protocol) {

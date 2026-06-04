@@ -3,21 +3,19 @@ package com.easyconnect.nas.ui.browser;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -25,32 +23,24 @@ import com.easyconnect.nas.R;
 import com.easyconnect.nas.data.model.NasFile;
 import com.easyconnect.nas.ui.browser.adapter.FileListAdapter;
 import com.easyconnect.nas.ui.browser.dialog.CreateFolderDialog;
-import com.easyconnect.nas.ui.browser.dialog.RenameDialog;
 import com.easyconnect.nas.ui.preview.ImagePreviewActivity;
 import com.easyconnect.nas.ui.preview.VideoPlayerActivity;
 import com.easyconnect.nas.ui.preview.AudioPlayerActivity;
-import com.easyconnect.nas.util.MimeTypeHelper;
-import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.bottomappbar.BottomAppBar;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class FileBrowserFragment extends Fragment implements FileListAdapter.OnFileClickListener {
     private FileBrowserViewModel viewModel;
     private FileListAdapter adapter;
     private RecyclerView recyclerView;
-    private TextView tvEmpty;
+    private TextView tvEmpty, tvTitle, tvSelectedCount;
     private ProgressBar progressBar;
     private ChipGroup chipGroupBreadcrumb;
-    private MaterialToolbar toolbar;
-    private BottomAppBar bottomActionBar;
+    private LinearLayout bottomActionBar;
     private boolean selectionMode = false;
 
     @Nullable
@@ -68,7 +58,7 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
 
         initViews(view);
         setupRecyclerView();
-        setupToolbar();
+        setupButtons();
         setupObservers();
 
         // Get connection ID from arguments
@@ -76,7 +66,6 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         if (connectionId > 0) {
             viewModel.connectToServer(connectionId);
         } else {
-            // No connection selected, show message
             tvEmpty.setText("请先选择一个NAS连接");
             tvEmpty.setVisibility(View.VISIBLE);
             recyclerView.setVisibility(View.GONE);
@@ -84,12 +73,22 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
     }
 
     private void initViews(View view) {
-        toolbar = view.findViewById(R.id.toolbar);
+        tvTitle = view.findViewById(R.id.tv_title);
         recyclerView = view.findViewById(R.id.rv_files);
         tvEmpty = view.findViewById(R.id.tv_empty);
         progressBar = view.findViewById(R.id.progress_bar);
         chipGroupBreadcrumb = view.findViewById(R.id.chip_group_breadcrumb);
         bottomActionBar = view.findViewById(R.id.bottom_action_bar);
+        tvSelectedCount = view.findViewById(R.id.tv_selected_count);
+
+        ImageButton btnBack = view.findViewById(R.id.btn_back);
+        btnBack.setOnClickListener(v -> {
+            if (selectionMode) {
+                exitSelectionMode();
+            } else {
+                viewModel.navigateUp();
+            }
+        });
     }
 
     private void setupRecyclerView() {
@@ -98,44 +97,35 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         recyclerView.setAdapter(adapter);
     }
 
-    private void setupToolbar() {
-        toolbar.setNavigationOnClickListener(v -> {
-            if (selectionMode) {
-                exitSelectionMode();
-            } else {
-                viewModel.navigateUp();
-            }
+    private void setupButtons() {
+        ImageButton btnViewMode = requireView().findViewById(R.id.btn_view_mode);
+        btnViewMode.setOnClickListener(v -> {
+            viewModel.setGridView(!viewModel.isGridView());
+            // TODO: Switch between list and grid adapter
         });
 
-        toolbar.addMenuProvider(new MenuProvider() {
-            @Override
-            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-                menuInflater.inflate(R.menu.menu_browser, menu);
-            }
+        ImageButton btnMore = requireView().findViewById(R.id.btn_more);
+        btnMore.setOnClickListener(v -> showPopupMenu(v));
+    }
 
-            @Override
-            public boolean onMenuItemSelected(@NonNull MenuItem item) {
-                int id = item.getItemId();
-                if (id == R.id.action_view_mode) {
-                    viewModel.setGridView(!viewModel.isGridView());
-                    // TODO: Switch between list and grid adapter
-                    return true;
-                } else if (id == R.id.action_sort) {
-                    showSortDialog();
-                    return true;
-                } else if (id == R.id.action_refresh) {
-                    viewModel.refresh();
-                    return true;
-                } else if (id == R.id.action_new_folder) {
-                    showCreateFolderDialog();
-                    return true;
-                } else if (id == R.id.action_settings) {
-                    // Navigate to settings
-                    return true;
-                }
-                return false;
+    private void showPopupMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(requireContext(), anchor);
+        popup.getMenuInflater().inflate(R.menu.menu_browser, popup.getMenu());
+        popup.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.action_sort) {
+                showSortDialog();
+                return true;
+            } else if (id == R.id.action_refresh) {
+                viewModel.refresh();
+                return true;
+            } else if (id == R.id.action_new_folder) {
+                showCreateFolderDialog();
+                return true;
             }
-        }, getViewLifecycleOwner(), Lifecycle.State.STARTED);
+            return false;
+        });
+        popup.show();
     }
 
     private void setupObservers() {
@@ -189,14 +179,15 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
             chipGroupBreadcrumb.addView(chip);
         }
 
-        // Update toolbar title
-        toolbar.setTitle(segments.length > 0 ? segments[segments.length - 1] : "/");
+        // Update title
+        tvTitle.setText(segments.length > 0 ? segments[segments.length - 1] : "/");
     }
 
     private void enterSelectionMode(int count) {
         selectionMode = true;
         adapter.setSelectionMode(true);
-        toolbar.setTitle(getString(R.string.selected_count, count));
+        tvTitle.setText(getString(R.string.selected_count, count));
+        tvSelectedCount.setText(getString(R.string.selected_count, count));
         bottomActionBar.setVisibility(View.VISIBLE);
     }
 
@@ -206,7 +197,7 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         viewModel.clearSelection();
         bottomActionBar.setVisibility(View.GONE);
         String currentPath = viewModel.getCurrentPath().getValue();
-        toolbar.setTitle(currentPath != null ? currentPath : "/");
+        tvTitle.setText(currentPath != null ? currentPath : "/");
     }
 
     private void showSortDialog() {
@@ -245,7 +236,6 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         } else if (file.isPreviewable()) {
             openPreview(file);
         } else {
-            // Prompt download
             new MaterialAlertDialogBuilder(requireContext())
                     .setTitle(file.getName())
                     .setMessage("是否下载此文件？")
