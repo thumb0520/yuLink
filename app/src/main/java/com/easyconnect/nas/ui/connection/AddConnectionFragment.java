@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 
 import com.easyconnect.nas.R;
+import com.easyconnect.nas.data.db.entity.ConnectionEntity;
 import com.easyconnect.nas.data.model.ProtocolType;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -30,6 +31,7 @@ public class AddConnectionFragment extends Fragment {
     private TextInputLayout tilShareName, tilPort;
     private MaterialSwitch switchPassive, switchFtps, switchSmbEncryption;
     private MaterialButton btnTest, btnSave, btnCancel;
+    private long editConnectionId = -1;
 
     @Nullable
     @Override
@@ -48,6 +50,14 @@ public class AddConnectionFragment extends Fragment {
         setupProtocolSpinner();
         setupListeners();
         setupObservers();
+
+        // Check if editing existing connection
+        if (getArguments() != null) {
+            editConnectionId = getArguments().getLong("connectionId", -1);
+            if (editConnectionId > 0) {
+                loadConnection(editConnectionId);
+            }
+        }
     }
 
     private void initViews(View view) {
@@ -140,19 +150,40 @@ public class AddConnectionFragment extends Fragment {
         btnSave.setOnClickListener(v -> {
             if (validateInputs()) {
                 ProtocolType protocol = getSelectedProtocol();
-                viewModel.saveConnection(
-                        etName.getText().toString(),
-                        protocol,
-                        etHost.getText().toString(),
-                        Integer.parseInt(etPort.getText().toString()),
-                        etUsername.getText().toString(),
-                        etPassword.getText().toString(),
-                        etShareName.getText() != null ? etShareName.getText().toString() : "",
-                        etDefaultPath.getText() != null ? etDefaultPath.getText().toString() : "/",
-                        switchPassive.isChecked(),
-                        switchFtps.isChecked(),
-                        switchSmbEncryption.isChecked()
-                );
+                String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+
+                if (editConnectionId > 0) {
+                    // Update existing connection
+                    viewModel.updateConnection(
+                            editConnectionId,
+                            etName.getText().toString(),
+                            protocol,
+                            etHost.getText().toString(),
+                            Integer.parseInt(etPort.getText().toString()),
+                            etUsername.getText().toString(),
+                            password,
+                            etShareName.getText() != null ? etShareName.getText().toString() : "",
+                            etDefaultPath.getText() != null ? etDefaultPath.getText().toString() : "/",
+                            switchPassive.isChecked(),
+                            switchFtps.isChecked(),
+                            switchSmbEncryption.isChecked()
+                    );
+                } else {
+                    // Create new connection
+                    viewModel.saveConnection(
+                            etName.getText().toString(),
+                            protocol,
+                            etHost.getText().toString(),
+                            Integer.parseInt(etPort.getText().toString()),
+                            etUsername.getText().toString(),
+                            password,
+                            etShareName.getText() != null ? etShareName.getText().toString() : "",
+                            etDefaultPath.getText() != null ? etDefaultPath.getText().toString() : "/",
+                            switchPassive.isChecked(),
+                            switchFtps.isChecked(),
+                            switchSmbEncryption.isChecked()
+                    );
+                }
             }
         });
 
@@ -184,6 +215,45 @@ public class AddConnectionFragment extends Fragment {
                         .show();
             }
         });
+
+        viewModel.getConnection().observe(getViewLifecycleOwner(), connection -> {
+            if (connection != null) {
+                populateFields(connection);
+            }
+        });
+    }
+
+    private void loadConnection(long connectionId) {
+        viewModel.loadConnection(connectionId);
+        MaterialToolbar toolbar = requireView().findViewById(R.id.toolbar);
+        toolbar.setTitle(R.string.edit_connection);
+        btnSave.setText(R.string.save);
+
+        // Add helper text for password field in edit mode
+        TextInputLayout tilPassword = requireView().findViewById(R.id.til_password);
+        tilPassword.setHelperText("留空表示不修改密码");
+        tilPassword.setHelperTextEnabled(true);
+    }
+
+    private void populateFields(ConnectionEntity connection) {
+        etName.setText(connection.name);
+        etHost.setText(connection.host);
+        etPort.setText(String.valueOf(connection.port));
+        etUsername.setText(connection.username);
+        etShareName.setText(connection.shareName);
+        etDefaultPath.setText(connection.defaultPath);
+        switchPassive.setChecked(connection.passiveMode);
+        switchFtps.setChecked(connection.useFtps);
+        switchSmbEncryption.setChecked(connection.useSmbEncryption);
+
+        // Set protocol
+        for (ProtocolType type : ProtocolType.values()) {
+            if (type == connection.protocol) {
+                spinnerProtocol.setText(type.getDisplayName(), false);
+                updateProtocolFields(type);
+                break;
+            }
+        }
     }
 
     private boolean validateInputs() {
@@ -209,9 +279,12 @@ public class AddConnectionFragment extends Fragment {
             valid = false;
         }
 
-        if (etPassword.getText() == null || etPassword.getText().toString().trim().isEmpty()) {
-            etPassword.setError("请输入密码");
-            valid = false;
+        // Password is required only for new connections
+        if (editConnectionId <= 0) {
+            if (etPassword.getText() == null || etPassword.getText().toString().trim().isEmpty()) {
+                etPassword.setError("请输入密码");
+                valid = false;
+            }
         }
 
         return valid;

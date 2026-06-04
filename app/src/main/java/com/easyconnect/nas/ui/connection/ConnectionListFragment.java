@@ -68,6 +68,29 @@ public class ConnectionListFragment extends Fragment implements ConnectionAdapte
 
     @Override
     public void onConnectionLongClick(ConnectionEntity connection) {
+        String[] options = {getString(R.string.edit_connection), getString(R.string.delete)};
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(connection.name)
+                .setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0: // Edit
+                            editConnection(connection);
+                            break;
+                        case 1: // Delete
+                            confirmDeleteConnection(connection);
+                            break;
+                    }
+                })
+                .show();
+    }
+
+    private void editConnection(ConnectionEntity connection) {
+        Bundle args = new Bundle();
+        args.putLong("connectionId", connection.id);
+        Navigation.findNavController(requireView()).navigate(R.id.action_connectionList_to_addConnection, args);
+    }
+
+    private void confirmDeleteConnection(ConnectionEntity connection) {
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.delete)
                 .setMessage(getString(R.string.confirm_delete_message))

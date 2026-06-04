@@ -25,6 +25,7 @@ public class AddConnectionViewModel extends AndroidViewModel {
     private final MutableLiveData<Boolean> testResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> saveResult = new MutableLiveData<>();
     private final MutableLiveData<String> error = new MutableLiveData<>();
+    private final MutableLiveData<ConnectionEntity> connection = new MutableLiveData<>();
 
     public AddConnectionViewModel(@NonNull Application application) {
         super(application);
@@ -41,6 +42,10 @@ public class AddConnectionViewModel extends AndroidViewModel {
 
     public LiveData<String> getError() {
         return error;
+    }
+
+    public LiveData<ConnectionEntity> getConnection() {
+        return connection;
     }
 
     public void testConnection(String name, ProtocolType protocol, String host, int port,
@@ -89,6 +94,53 @@ public class AddConnectionViewModel extends AndroidViewModel {
                 repository.insertConnection(entity, id -> saveResult.postValue(true));
             } catch (Exception e) {
                 error.postValue("保存失败: " + e.getMessage());
+                saveResult.postValue(false);
+            }
+        });
+    }
+
+    public void loadConnection(long connectionId) {
+        repository.getConnectionById(connectionId, entity -> {
+            if (entity != null) {
+                connection.postValue(entity);
+            }
+        });
+    }
+
+    public void updateConnection(long connectionId, String name, ProtocolType protocol, String host,
+                                 int port, String username, String password, String shareName,
+                                 String defaultPath, boolean passiveMode, boolean useFtps,
+                                 boolean useSmbEncryption) {
+        executor.execute(() -> {
+            try {
+                repository.getConnectionById(connectionId, entity -> {
+                    if (entity != null) {
+                        try {
+                            entity.name = name;
+                            entity.protocol = protocol;
+                            entity.host = host;
+                            entity.port = port;
+                            entity.username = username;
+                            // Only update password if provided
+                            if (password != null && !password.isEmpty()) {
+                                entity.encryptedPassword = CryptoUtils.encrypt(password);
+                            }
+                            entity.shareName = shareName;
+                            entity.defaultPath = defaultPath;
+                            entity.passiveMode = passiveMode;
+                            entity.useFtps = useFtps;
+                            entity.useSmbEncryption = useSmbEncryption;
+
+                            repository.updateConnection(entity);
+                            saveResult.postValue(true);
+                        } catch (Exception e) {
+                            error.postValue("加密密码失败: " + e.getMessage());
+                            saveResult.postValue(false);
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                error.postValue("更新失败: " + e.getMessage());
                 saveResult.postValue(false);
             }
         });
