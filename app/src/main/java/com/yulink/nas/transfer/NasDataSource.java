@@ -1,6 +1,7 @@
 package com.yulink.nas.transfer;
 
 import android.net.Uri;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.media3.common.C;
@@ -13,13 +14,19 @@ import com.yulink.nas.protocol.ProtocolManager;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 
 public class NasDataSource implements DataSource {
+    private static final String TAG = "NasDataSource";
+    private static final int BUFFER_SIZE = 512 * 1024; // 512KB
+
     private final ProtocolManager protocolManager;
     private final String remotePath;
-    private InputStream inputStream;
+    private InputStream rawStream;
+    private BufferedInputStream inputStream;
     private long bytesRemaining;
     private boolean opened;
+    private long readPosition = 0;
 
     public NasDataSource(ProtocolManager protocolManager, String remotePath) {
         this.protocolManager = protocolManager;
@@ -29,17 +36,71 @@ public class NasDataSource implements DataSource {
     @Override
     public long open(DataSpec dataSpec) throws IOException {
         try {
-            InputStream rawStream = protocolManager.openFileStream(remotePath);
-            if (dataSpec.position > 0) {
-                rawStream.skip(dataSpec.position);
+            if (rawStream == null) {
+                Log.d(TAG, "Opening new stream for " + remotePath);
+                rawStream = protocolManager.openFileStream(remotePath);
+                readPosition = 0;
             }
-            inputStream = new BufferedInputStream(rawStream, 128 * 1024); // 128KB buffer
+
+            long targetPosition = dataSpec.position;
+            if (targetPosition != readPosition) {
+                if (trySeek(rawStream, targetPosition)) {
+                    // True random-access seek (O(1), single SMB READ request)
+                    Log.d(TAG, "Random-access seek to " + targetPosition);
+                    readPosition = targetPosition;
+                } else if (targetPosition > readPosition) {
+                    // Forward seek: skip delta
+                    long delta = targetPosition - readPosition;
+                    Log.d(TAG, "Forward seek: skipping " + delta + " bytes from position " + readPosition);
+                    long skipped = skipBytes(rawStream, delta);
+                    readPosition += skipped;
+                } else {
+                    // Backward seek without random-access: reopen
+                    Log.d(TAG, "Backward seek: reopening stream to position " + targetPosition);
+                    try { rawStream.close(); } catch (Exception ignored) {}
+                    rawStream = protocolManager.openFileStream(remotePath);
+                    readPosition = 0;
+                    if (targetPosition > 0) {
+                        long skipped = skipBytes(rawStream, targetPosition);
+                        readPosition += skipped;
+                    }
+                }
+            }
+
+            inputStream = new BufferedInputStream(rawStream, BUFFER_SIZE);
             bytesRemaining = dataSpec.length == C.LENGTH_UNSET ? C.LENGTH_UNSET : dataSpec.length;
             opened = true;
+            Log.d(TAG, "Stream opened at position " + readPosition + ", length=" + bytesRemaining);
             return bytesRemaining;
         } catch (Exception e) {
             throw new IOException("Failed to open NAS data source", e);
         }
+    }
+
+    /**
+     * Try to seek using reflection — looks for a public seek(long) method on the stream.
+     * Returns true if seek was performed, false if the stream doesn't support it.
+     */
+    private boolean trySeek(InputStream stream, long position) {
+        try {
+            Method seekMethod = stream.getClass().getMethod("seek", long.class);
+            seekMethod.invoke(stream, position);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private long skipBytes(InputStream stream, long bytes) throws IOException {
+        byte[] buf = new byte[64 * 1024]; // 64KB
+        long remaining = bytes;
+        while (remaining > 0) {
+            int toRead = (int) Math.min(remaining, buf.length);
+            int read = stream.read(buf, 0, toRead);
+            if (read <= 0) break;
+            remaining -= read;
+        }
+        return bytes - remaining;
     }
 
     @Override
@@ -65,12 +126,13 @@ public class NasDataSource implements DataSource {
         if (bytesRemaining != C.LENGTH_UNSET) {
             bytesRemaining -= bytesRead;
         }
+        readPosition += bytesRead;
         return bytesRead;
     }
 
     @Override
     public void addTransferListener(TransferListener transferListener) {
-        // No-op: transfer listening not supported
+        // No-op
     }
 
     @Nullable
@@ -81,13 +143,9 @@ public class NasDataSource implements DataSource {
 
     @Override
     public void close() throws IOException {
-        if (inputStream != null) {
-            try {
-                inputStream.close();
-            } catch (Exception e) {
-                throw new IOException("Failed to close NAS data source", e);
-            }
-        }
+        // Don't close rawStream — keep SMB file handle alive for reuse.
+        // Cleaned up by ProtocolManager.disconnect() in VideoPlayerActivity.onDestroy().
+        inputStream = null;
         opened = false;
     }
 

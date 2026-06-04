@@ -16,8 +16,12 @@ import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.mssmb2.SMB2FileId;
+import com.hierynomus.mssmb2.messages.SMB2ReadResponse;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+
+import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +33,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class SmbProtocolManager implements ProtocolManager {
+    private static final String TAG = "SmbProtocolManager";
     private SMBClient smbClient;
     private Connection connection;
     private Session session;
@@ -336,7 +341,16 @@ public class SmbProtocolManager implements ProtocolManager {
                     EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
                     SMB2CreateDisposition.FILE_OPEN,
                     null);
-            return new SmbInputStream(remoteFile);
+
+            // Try to create a random-access stream using DiskShare.read(SMB2FileId, offset, ...)
+            // This allows true seeking without reading and discarding bytes
+            try {
+                SMB2FileId fileId = remoteFile.getFileId();
+                return new SmbRandomAccessInputStream(share, fileId, remoteFile);
+            } catch (Exception e) {
+                Log.w(TAG, "Cannot create random-access stream, falling back to sequential", e);
+                return new SmbInputStream(remoteFile);
+            }
         } catch (Exception e) {
             throw new ProtocolException("Failed to open file stream", e);
         }
@@ -381,6 +395,82 @@ public class SmbProtocolManager implements ProtocolManager {
                 closed = true;
                 inputStream.close();
                 file.close();
+            }
+        }
+    }
+
+    /**
+     * Random-access InputStream for SMB files.
+     * Uses DiskShare.read(SMB2FileId, offset, length) via reflection to read from any
+     * position directly. This avoids the need to skip bytes for seeking — critical for
+     * large video files where ExoPlayer seeks to the end to read the moov atom.
+     */
+    private static class SmbRandomAccessInputStream extends InputStream {
+        private final DiskShare share;
+        private final SMB2FileId fileId;
+        private final File file;
+        private final java.lang.reflect.Method readMethod;
+        private long position = 0;
+        private boolean closed = false;
+
+        SmbRandomAccessInputStream(DiskShare share, SMB2FileId fileId, File file) throws Exception {
+            this.share = share;
+            this.fileId = fileId;
+            this.file = file;
+            // Share.read(SMB2FileId, long, int) is package-private, use reflection
+            this.readMethod = share.getClass().getSuperclass()
+                    .getDeclaredMethod("read", SMB2FileId.class, long.class, int.class);
+            this.readMethod.setAccessible(true);
+        }
+
+        public void seek(long newPosition) {
+            this.position = newPosition;
+        }
+
+        public long position() {
+            return position;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (closed) throw new IOException("Stream closed");
+            byte[] buf = new byte[1];
+            int n = readFromShare(position, buf, 0, 1);
+            if (n <= 0) return -1;
+            position++;
+            return buf[0] & 0xFF;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            if (closed) throw new IOException("Stream closed");
+            if (len == 0) return 0;
+            int n = readFromShare(position, b, off, len);
+            if (n > 0) position += n;
+            return n;
+        }
+
+        private int readFromShare(long offset, byte[] b, int off, int len) throws IOException {
+            try {
+                SMB2ReadResponse response = (SMB2ReadResponse) readMethod.invoke(share, fileId, offset, len);
+                int dataLen = response.getDataLength();
+                if (dataLen <= 0) return -1;
+                byte[] data = response.getData();
+                System.arraycopy(data, 0, b, off, dataLen);
+                return dataLen;
+            } catch (Exception e) {
+                throw new IOException("SMB read failed at offset " + offset, e);
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (!closed) {
+                closed = true;
+                // file.close() internally calls share.closeFileId(fileId)
+                try {
+                    file.close();
+                } catch (Exception ignored) {}
             }
         }
     }

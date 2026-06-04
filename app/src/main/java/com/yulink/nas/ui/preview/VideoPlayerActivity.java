@@ -75,10 +75,10 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     DefaultLoadControl loadControl = new DefaultLoadControl.Builder()
                             .setBufferDurationsMs(
-                                    50000,   // minBufferMs: 50s
-                                    100000,  // maxBufferMs: 100s
-                                    5000,    // bufferForPlaybackMs: 5s
-                                    10000    // bufferForPlaybackAfterRebufferMs: 10s
+                                    20000,   // minBufferMs: 20s
+                                    60000,   // maxBufferMs: 60s
+                                    2500,    // bufferForPlaybackMs: 2.5s
+                                    5000     // bufferForPlaybackAfterRebufferMs: 5s
                             )
                             .build();
                     player = new ExoPlayer.Builder(this)
@@ -125,6 +125,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
             player.release();
             player = null;
         }
+        executor.shutdownNow();
         if (protocolManager != null) {
             protocolManager.disconnect();
         }
