@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="#"><img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version"></a>
+  <a href="#"><img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version"></a>
   <a href="#"><img src="https://img.shields.io/badge/platform-Android-green.svg" alt="Platform"></a>
   <a href="#"><img src="https://img.shields.io/badge/API-26%2B-brightgreen.svg" alt="API"></a>
   <a href="#"><img src="https://img.shields.io/badge/language-Java-orange.svg" alt="Language"></a>
@@ -304,7 +304,15 @@ Release 版本会自动混淆。关键库的 keep 规则已配置在 `app/progua
 
 ## 📝 更新日志
 
-### v1.0.0 (2024-XX-XX)
+### v1.1.0 (2026-06-04)
+
+- 🎨 **UI 全面升级** - 重新设计的界面样式，更加现代美观
+- ✏️ **连接编辑功能** - 支持编辑已保存的连接配置
+- 🔧 **协议选择优化** - 改进协议下拉选择器交互体验
+- 🎯 **图标更新** - 全新的应用图标和界面图标
+- 🐛 **多项 Bug 修复** - 提升应用稳定性和用户体验
+
+### v1.0.0 (2024-01-01)
 
 - 🎉 首次发布
 - ✅ 支持 SMB/CIFS、FTP、SFTP 协议
