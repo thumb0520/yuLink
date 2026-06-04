@@ -130,7 +130,7 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
                 }
                 return false;
             }
-        }, getViewLifecycleOwner(), Lifecycle.State.RESOLVED);
+        }, getViewLifecycleOwner(), Lifecycle.State.STARTED);
     }
 
     private void setupObservers() {

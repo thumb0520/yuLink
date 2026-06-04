@@ -55,7 +55,7 @@ public class SmbProtocolManager implements ProtocolManager {
 
             share = (DiskShare) session.connectShare(shareName);
             connected = true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Failed to connect to SMB server", e);
         }
     }
@@ -67,7 +67,7 @@ public class SmbProtocolManager implements ProtocolManager {
             if (session != null) session.close();
             if (connection != null) connection.close();
             if (smbClient != null) smbClient.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             // Ignore
         }
         connected = false;
@@ -109,7 +109,7 @@ public class SmbProtocolManager implements ProtocolManager {
             }
 
             return result;
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Failed to list files", e);
         }
     }
@@ -148,7 +148,7 @@ public class SmbProtocolManager implements ProtocolManager {
             } finally {
                 remoteFile.close();
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Upload failed", e);
         }
     }
@@ -190,7 +190,7 @@ public class SmbProtocolManager implements ProtocolManager {
             } finally {
                 remoteFile.close();
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Download failed", e);
         }
     }
@@ -200,7 +200,7 @@ public class SmbProtocolManager implements ProtocolManager {
         checkConnected();
         try {
             share.rm(normalizePath(remotePath));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Failed to delete file: " + remotePath, e);
         }
     }
@@ -222,8 +222,8 @@ public class SmbProtocolManager implements ProtocolManager {
                     share.rm(filePath);
                 }
             }
-            share.rmdir(normalizePath(remotePath));
-        } catch (IOException e) {
+            share.rmdir(normalizePath(remotePath), false);
+        } catch (Exception e) {
             throw new ProtocolException("Failed to delete directory: " + remotePath, e);
         }
     }
@@ -233,7 +233,7 @@ public class SmbProtocolManager implements ProtocolManager {
         checkConnected();
         try {
             share.mkdir(normalizePath(remotePath));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Failed to create directory: " + remotePath, e);
         }
     }
@@ -254,7 +254,7 @@ public class SmbProtocolManager implements ProtocolManager {
             } finally {
                 file.close();
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Failed to rename file", e);
         }
     }
@@ -289,7 +289,7 @@ public class SmbProtocolManager implements ProtocolManager {
             } finally {
                 file.close();
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Failed to get file properties", e);
         }
     }
@@ -306,7 +306,7 @@ public class SmbProtocolManager implements ProtocolManager {
                     SMB2CreateDisposition.FILE_OPEN,
                     null);
             return new SmbInputStream(remoteFile);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ProtocolException("Failed to open file stream", e);
         }
     }

@@ -1,9 +1,12 @@
 package com.easyconnect.nas.transfer;
 
+import android.net.Uri;
+
 import androidx.annotation.Nullable;
 import androidx.media3.common.C;
 import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DataSpec;
+import androidx.media3.datasource.TransferListener;
 
 import com.easyconnect.nas.protocol.ProtocolManager;
 
@@ -61,6 +64,11 @@ public class NasDataSource implements DataSource {
             bytesRemaining -= bytesRead;
         }
         return bytesRead;
+    }
+
+    @Override
+    public void addTransferListener(TransferListener transferListener) {
+        // No-op: transfer listening not supported
     }
 
     @Nullable

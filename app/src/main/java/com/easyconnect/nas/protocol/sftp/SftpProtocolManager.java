@@ -6,6 +6,7 @@ import com.easyconnect.nas.protocol.ProtocolException;
 import com.easyconnect.nas.protocol.ProtocolManager;
 
 import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.sftp.FileMode;
 import net.schmizz.sshj.sftp.OpenMode;
 import net.schmizz.sshj.sftp.RemoteFile;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
@@ -90,8 +91,8 @@ public class SftpProtocolManager implements ProtocolManager {
                 nasFile.setDirectory(resource.isDirectory());
                 nasFile.setSize(resource.getAttributes().getSize());
                 nasFile.setLastModified(new Date(resource.getAttributes().getMtime() * 1000L));
-                nasFile.setPermissions(resource.getPermissions() != null ?
-                        resource.getPermissions().toString() : null);
+                nasFile.setPermissions(resource.getAttributes().getPermissions() != null ?
+                        resource.getAttributes().getPermissions().toString() : null);
                 result.add(nasFile);
             }
 
@@ -238,7 +239,7 @@ public class SftpProtocolManager implements ProtocolManager {
             NasFile nasFile = new NasFile();
             nasFile.setName(path.substring(path.lastIndexOf('/') + 1));
             nasFile.setFullPath(path);
-            nasFile.setDirectory(attrs.isDirectory());
+            nasFile.setDirectory(attrs.getType() == net.schmizz.sshj.sftp.FileMode.Type.DIRECTORY);
             nasFile.setSize(attrs.getSize());
             nasFile.setLastModified(new Date(attrs.getMtime() * 1000L));
             nasFile.setPermissions(attrs.getPermissions() != null ?
