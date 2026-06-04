@@ -36,7 +36,8 @@
         tools:layout="@layout/fragment_file_browser">
         <argument
             android:name="connectionId"
-            app:argType="long" />
+            app:argType="long"
+            android:defaultValue="-1L" />
         <argument
             android:name="initialPath"
             app:argType="string"

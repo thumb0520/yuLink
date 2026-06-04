@@ -14,3 +14,12 @@
 # BouncyCastle (transitive dep of smbj and sshj)
 -keep class org.bouncycastle.** { *; }
 -dontwarn org.bouncycastle.**
+
+# javax.el (dependency of smbj/sshj)
+-dontwarn javax.el.BeanELResolver
+-dontwarn javax.el.ELContext
+-dontwarn javax.el.ELResolver
+-dontwarn javax.el.ExpressionFactory
+-dontwarn javax.el.FunctionMapper
+-dontwarn javax.el.ValueExpression
+-dontwarn javax.el.VariableMapper

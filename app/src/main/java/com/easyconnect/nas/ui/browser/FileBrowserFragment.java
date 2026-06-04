@@ -75,6 +75,11 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         long connectionId = getArguments() != null ? getArguments().getLong("connectionId", -1) : -1;
         if (connectionId > 0) {
             viewModel.connectToServer(connectionId);
+        } else {
+            // No connection selected, show message
+            tvEmpty.setText("请先选择一个NAS连接");
+            tvEmpty.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
         }
     }
 
