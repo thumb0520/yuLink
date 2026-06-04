@@ -17,6 +17,7 @@ public class TransferTask {
     private Status status;
     private String errorMessage;
     private int notificationId;
+    private long dbId; // database row id for updating status
 
     public TransferTask() {
         this.taskId = UUID.randomUUID().toString();
@@ -72,4 +73,7 @@ public class TransferTask {
 
     public int getNotificationId() { return notificationId; }
     public void setNotificationId(int notificationId) { this.notificationId = notificationId; }
+
+    public long getDbId() { return dbId; }
+    public void setDbId(long dbId) { this.dbId = dbId; }
 }

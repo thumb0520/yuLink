@@ -21,6 +21,8 @@ public class TransferRepository {
     private final ExecutorService executor;
     private final ConcurrentHashMap<String, TransferTask> activeTasks = new ConcurrentHashMap<>();
     private final MutableLiveData<List<TransferTask>> activeTasksLiveData = new MutableLiveData<>();
+    // Map taskId -> database row id (populated immediately on insert)
+    private final ConcurrentHashMap<String, Long> taskIdToDbId = new ConcurrentHashMap<>();
 
     public TransferRepository(Application application) {
         AppDatabase db = AppDatabase.getInstance(application);
@@ -40,7 +42,7 @@ public class TransferRepository {
         activeTasks.put(task.getTaskId(), task);
         updateActiveTasksLiveData();
 
-        // Also persist to database
+        // Persist to database and track the mapping
         executor.execute(() -> {
             TransferHistoryEntity entity = new TransferHistoryEntity();
             entity.connectionId = task.getConnectionId();
@@ -49,9 +51,10 @@ public class TransferRepository {
             entity.destinationPath = task.getDestinationPath();
             entity.fileSize = task.getTotalBytes();
             entity.direction = task.getDirection() == TransferTask.Direction.UPLOAD ? 0 : 1;
-            entity.status = 0;
+            entity.status = 0; // pending
             entity.startedAt = System.currentTimeMillis();
-            transferHistoryDao.insertTransfer(entity);
+            long rowId = transferHistoryDao.insertTransfer(entity);
+            taskIdToDbId.put(task.getTaskId(), rowId);
         });
     }
 
@@ -70,6 +73,8 @@ public class TransferRepository {
             task.setErrorMessage(errorMessage);
             if (status == TransferTask.Status.COMPLETED || status == TransferTask.Status.FAILED) {
                 activeTasks.remove(taskId);
+                int dbStatus = status == TransferTask.Status.COMPLETED ? 2 : 3;
+                updateDbStatus(taskId, task.getFileName(), task.getConnectionId(), dbStatus);
             }
             updateActiveTasksLiveData();
         }
@@ -80,12 +85,29 @@ public class TransferRepository {
         if (task != null) {
             task.setStatus(TransferTask.Status.CANCELLED);
             activeTasks.remove(taskId);
+            updateDbStatus(taskId, task.getFileName(), task.getConnectionId(), 3);
             updateActiveTasksLiveData();
         }
     }
 
     public void deleteCompletedTransfers() {
         executor.execute(transferHistoryDao::deleteCompletedTransfers);
+    }
+
+    private void updateDbStatus(String taskId, String fileName, long connectionId, int dbStatus) {
+        executor.execute(() -> {
+            Long dbId = taskIdToDbId.get(taskId);
+            if (dbId != null && dbId > 0) {
+                // Normal case: we have the mapping
+                transferHistoryDao.updateStatus(dbId, dbStatus, System.currentTimeMillis());
+            } else {
+                // Fallback: find by fileName + connectionId (for fast-completing tasks)
+                TransferHistoryEntity entity = transferHistoryDao.getTransferByFileName(fileName, connectionId);
+                if (entity != null && entity.status < 2) { // only update if still pending/running
+                    transferHistoryDao.updateStatus(entity.id, dbStatus, System.currentTimeMillis());
+                }
+            }
+        });
     }
 
     private void updateActiveTasksLiveData() {

@@ -25,6 +25,9 @@ public interface TransferHistoryDao {
     @Insert
     long insertTransfer(TransferHistoryEntity transfer);
 
+    @Query("SELECT * FROM transfer_history WHERE fileName = :fileName AND connectionId = :connectionId ORDER BY id DESC LIMIT 1")
+    TransferHistoryEntity getTransferByFileName(String fileName, long connectionId);
+
     @Update
     void updateTransfer(TransferHistoryEntity transfer);
 
@@ -33,4 +36,10 @@ public interface TransferHistoryDao {
 
     @Query("DELETE FROM transfer_history WHERE status IN (2, 3)")
     void deleteCompletedTransfers();
+
+    @Query("UPDATE transfer_history SET status = :status, completedAt = :completedAt WHERE id = :id")
+    void updateStatus(long id, int status, long completedAt);
+
+    @Query("SELECT * FROM transfer_history WHERE id = :id")
+    TransferHistoryEntity getTransferById(long id);
 }

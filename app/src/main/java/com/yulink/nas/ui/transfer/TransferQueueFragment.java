@@ -55,7 +55,7 @@ public class TransferQueueFragment extends Fragment implements TransferAdapter.O
             return false;
         });
 
-        viewModel.getActiveTasks().observe(getViewLifecycleOwner(), this::updateList);
+        viewModel.getAllTransfers().observe(getViewLifecycleOwner(), this::updateList);
     }
 
     private void updateList(List<TransferTask> tasks) {
