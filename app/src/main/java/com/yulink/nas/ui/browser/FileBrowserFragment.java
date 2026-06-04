@@ -83,9 +83,8 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         setupButtons();
         setupObservers();
 
-        // Start and bind transfer service
+        // Bind transfer service (don't start foreground yet — only when a transfer is enqueued)
         Intent serviceIntent = new Intent(requireContext(), TransferService.class);
-        requireContext().startService(serviceIntent);
         requireContext().bindService(serviceIntent, serviceConnection, android.content.Context.BIND_AUTO_CREATE);
 
         // Get connection ID from arguments
@@ -309,6 +308,10 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
                 file.getSize()
         );
         task.setNotificationId((int) (System.currentTimeMillis() % Integer.MAX_VALUE));
+
+        // Start foreground service now that we have an actual transfer
+        Intent serviceIntent = new Intent(requireContext(), TransferService.class);
+        requireContext().startService(serviceIntent);
 
         transferService.enqueueTransfer(task);
         Snackbar.make(requireView(), "开始下载: " + file.getName(), Snackbar.LENGTH_SHORT).show();
