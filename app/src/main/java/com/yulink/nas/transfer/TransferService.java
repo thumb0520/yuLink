@@ -55,6 +55,16 @@ public class TransferService extends Service implements TransferWorker.TransferC
         transferManager.enqueueTransfer(task, this, this);
     }
 
+    public void cancelTransfer(String taskId) {
+        transferManager.cancelTransfer(taskId);
+        transferRepository.cancelTask(taskId);
+    }
+
+    public void forceDeleteTask(String taskId) {
+        transferManager.cancelTransfer(taskId);
+        transferRepository.forceDeleteTask(taskId);
+    }
+
     @Override
     public void onTransferStarted(TransferTask task) {
         Log.d("TransferService", "Transfer started: " + task.getFileName());

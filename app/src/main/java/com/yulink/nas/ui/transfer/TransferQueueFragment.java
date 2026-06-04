@@ -1,6 +1,11 @@
 package com.yulink.nas.ui.transfer;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,8 +20,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.yulink.nas.R;
 import com.yulink.nas.data.model.TransferTask;
+import com.yulink.nas.transfer.TransferService;
 import com.yulink.nas.ui.transfer.adapter.TransferAdapter;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.List;
 
@@ -25,6 +32,23 @@ public class TransferQueueFragment extends Fragment implements TransferAdapter.O
     private TransferAdapter adapter;
     private RecyclerView recyclerView;
     private TextView tvEmpty;
+    private TransferService transferService;
+    private boolean serviceBound = false;
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            TransferService.TransferBinder binder = (TransferService.TransferBinder) service;
+            transferService = binder.getService();
+            serviceBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            transferService = null;
+            serviceBound = false;
+        }
+    };
 
     @Nullable
     @Override
@@ -56,6 +80,10 @@ public class TransferQueueFragment extends Fragment implements TransferAdapter.O
         });
 
         viewModel.getAllTransfers().observe(getViewLifecycleOwner(), this::updateList);
+
+        // Bind transfer service for cancel/delete operations
+        Intent serviceIntent = new Intent(requireContext(), TransferService.class);
+        requireContext().bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     private void updateList(List<TransferTask> tasks) {
@@ -66,6 +94,44 @@ public class TransferQueueFragment extends Fragment implements TransferAdapter.O
 
     @Override
     public void onCancelClick(TransferTask task) {
-        viewModel.cancelTask(task.getTaskId());
+        if (serviceBound && transferService != null) {
+            transferService.cancelTransfer(task.getTaskId());
+        } else {
+            // Fallback: cancel via repository only
+            viewModel.getRepository().cancelTask(task.getTaskId());
+        }
+    }
+
+    @Override
+    public void onDeleteClick(TransferTask task) {
+        boolean isActive = task.getStatus() == TransferTask.Status.RUNNING ||
+                task.getStatus() == TransferTask.Status.QUEUED;
+
+        String title = isActive ? "强制删除任务" : "删除任务";
+        String message = isActive
+                ? "任务 \"" + task.getFileName() + "\" 正在传输中，确定要强制删除吗？\n\n这将取消当前传输并删除任务记录。"
+                : "确定要删除 \"" + task.getFileName() + "\" 的传输记录吗？";
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(R.string.delete, (dialog, which) -> {
+                    if (serviceBound && transferService != null) {
+                        transferService.forceDeleteTask(task.getTaskId());
+                    } else {
+                        viewModel.deleteTask(task);
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (serviceBound) {
+            requireContext().unbindService(serviceConnection);
+            serviceBound = false;
+        }
     }
 }

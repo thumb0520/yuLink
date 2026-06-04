@@ -21,7 +21,6 @@ public class TransferRepository {
     private final ExecutorService executor;
     private final ConcurrentHashMap<String, TransferTask> activeTasks = new ConcurrentHashMap<>();
     private final MutableLiveData<List<TransferTask>> activeTasksLiveData = new MutableLiveData<>();
-    // Map taskId -> database row id (populated immediately on insert)
     private final ConcurrentHashMap<String, Long> taskIdToDbId = new ConcurrentHashMap<>();
 
     public TransferRepository(Application application) {
@@ -42,7 +41,6 @@ public class TransferRepository {
         activeTasks.put(task.getTaskId(), task);
         updateActiveTasksLiveData();
 
-        // Persist to database and track the mapping
         executor.execute(() -> {
             TransferHistoryEntity entity = new TransferHistoryEntity();
             entity.connectionId = task.getConnectionId();
@@ -51,7 +49,7 @@ public class TransferRepository {
             entity.destinationPath = task.getDestinationPath();
             entity.fileSize = task.getTotalBytes();
             entity.direction = task.getDirection() == TransferTask.Direction.UPLOAD ? 0 : 1;
-            entity.status = 0; // pending
+            entity.status = 0;
             entity.startedAt = System.currentTimeMillis();
             long rowId = transferHistoryDao.insertTransfer(entity);
             taskIdToDbId.put(task.getTaskId(), rowId);
@@ -69,25 +67,48 @@ public class TransferRepository {
     public void updateTaskStatus(String taskId, TransferTask.Status status, String errorMessage) {
         TransferTask task = activeTasks.get(taskId);
         if (task != null) {
+            // Don't override CANCELLED status (cancel causes disconnect → onTransferFailed)
+            if (task.getStatus() == TransferTask.Status.CANCELLED) {
+                return;
+            }
             task.setStatus(status);
             task.setErrorMessage(errorMessage);
-            if (status == TransferTask.Status.COMPLETED || status == TransferTask.Status.FAILED) {
-                activeTasks.remove(taskId);
-                int dbStatus = status == TransferTask.Status.COMPLETED ? 2 : 3;
-                updateDbStatus(taskId, task.getFileName(), task.getConnectionId(), dbStatus);
-            }
+            // Keep in activeTasks so UUID→DB mapping survives for cancel/delete
+            // Remove only on forceDeleteTask
+            int dbStatus = status == TransferTask.Status.COMPLETED ? 2 : 3;
+            updateDbStatus(taskId, task.getFileName(), task.getConnectionId(), dbStatus);
             updateActiveTasksLiveData();
         }
     }
 
     public void cancelTask(String taskId) {
         TransferTask task = activeTasks.get(taskId);
-        if (task != null) {
+        if (task != null && task.getStatus() != TransferTask.Status.COMPLETED) {
             task.setStatus(TransferTask.Status.CANCELLED);
-            activeTasks.remove(taskId);
-            updateDbStatus(taskId, task.getFileName(), task.getConnectionId(), 3);
+            updateDbStatus(taskId, task.getFileName(), task.getConnectionId(), 4);
             updateActiveTasksLiveData();
         }
+    }
+
+    public void forceDeleteTask(String taskId) {
+        // Remove from active tasks (works for both active and completed tasks)
+        activeTasks.remove(taskId);
+
+        // Delete from database
+        Long dbId = taskIdToDbId.remove(taskId);
+        if (dbId != null && dbId > 0) {
+            executor.execute(() -> transferHistoryDao.deleteTransferById(dbId));
+        } else {
+            // Fallback: taskId might be the DB row ID itself (from history records)
+            executor.execute(() -> {
+                try {
+                    long id = Long.parseLong(taskId);
+                    transferHistoryDao.deleteTransferById(id);
+                } catch (NumberFormatException ignored) {
+                }
+            });
+        }
+        updateActiveTasksLiveData();
     }
 
     public void deleteCompletedTransfers() {
@@ -98,13 +119,12 @@ public class TransferRepository {
         executor.execute(() -> {
             Long dbId = taskIdToDbId.get(taskId);
             if (dbId != null && dbId > 0) {
-                // Normal case: we have the mapping
                 transferHistoryDao.updateStatus(dbId, dbStatus, System.currentTimeMillis());
             } else {
-                // Fallback: find by fileName + connectionId (for fast-completing tasks)
                 TransferHistoryEntity entity = transferHistoryDao.getTransferByFileName(fileName, connectionId);
-                if (entity != null && entity.status < 2) { // only update if still pending/running
+                if (entity != null && entity.status < 2) {
                     transferHistoryDao.updateStatus(entity.id, dbStatus, System.currentTimeMillis());
+                    taskIdToDbId.put(taskId, entity.id);
                 }
             }
         });

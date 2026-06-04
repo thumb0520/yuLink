@@ -34,7 +34,7 @@ public interface TransferHistoryDao {
     @Delete
     void deleteTransfer(TransferHistoryEntity transfer);
 
-    @Query("DELETE FROM transfer_history WHERE status IN (2, 3)")
+    @Query("DELETE FROM transfer_history WHERE status IN (2, 3, 4)")
     void deleteCompletedTransfers();
 
     @Query("UPDATE transfer_history SET status = :status, completedAt = :completedAt WHERE id = :id")
@@ -42,4 +42,7 @@ public interface TransferHistoryDao {
 
     @Query("SELECT * FROM transfer_history WHERE id = :id")
     TransferHistoryEntity getTransferById(long id);
+
+    @Query("DELETE FROM transfer_history WHERE id = :id")
+    void deleteTransferById(long id);
 }

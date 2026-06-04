@@ -63,6 +63,7 @@ public class TransferAdapter extends ListAdapter<TransferTask, TransferAdapter.V
         private final TextView tvProgress;
         private final TextView tvSpeed;
         private final MaterialButton btnCancel;
+        private final MaterialButton btnDelete;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -73,6 +74,7 @@ public class TransferAdapter extends ListAdapter<TransferTask, TransferAdapter.V
             tvProgress = itemView.findViewById(R.id.tv_progress);
             tvSpeed = itemView.findViewById(R.id.tv_speed);
             btnCancel = itemView.findViewById(R.id.btn_cancel);
+            btnDelete = itemView.findViewById(R.id.btn_delete);
         }
 
         void bind(TransferTask task) {
@@ -123,14 +125,18 @@ public class TransferAdapter extends ListAdapter<TransferTask, TransferAdapter.V
                 tvSpeed.setVisibility(View.GONE);
             }
 
-            // Cancel button
-            boolean canCancel = isActive;
-            btnCancel.setVisibility(canCancel ? View.VISIBLE : View.GONE);
+            // Cancel button: only for active tasks
+            btnCancel.setVisibility(isActive ? View.VISIBLE : View.GONE);
             btnCancel.setOnClickListener(v -> listener.onCancelClick(task));
+
+            // Delete button: always visible (force delete for active tasks)
+            btnDelete.setVisibility(View.VISIBLE);
+            btnDelete.setOnClickListener(v -> listener.onDeleteClick(task));
         }
     }
 
     public interface OnTransferActionListener {
         void onCancelClick(TransferTask task);
+        void onDeleteClick(TransferTask task);
     }
 }

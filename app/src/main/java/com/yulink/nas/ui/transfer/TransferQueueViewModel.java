@@ -70,6 +70,7 @@ public class TransferQueueViewModel extends AndroidViewModel {
             case 1: task.setStatus(TransferTask.Status.RUNNING); break;
             case 2: task.setStatus(TransferTask.Status.COMPLETED); break;
             case 3: task.setStatus(TransferTask.Status.FAILED); break;
+            case 4: task.setStatus(TransferTask.Status.CANCELLED); break;
             default: task.setStatus(TransferTask.Status.FAILED); break;
         }
         return task;
@@ -79,8 +80,12 @@ public class TransferQueueViewModel extends AndroidViewModel {
         return allTransfers;
     }
 
-    public void cancelTask(String taskId) {
-        repository.cancelTask(taskId);
+    public TransferRepository getRepository() {
+        return repository;
+    }
+
+    public void deleteTask(TransferTask task) {
+        repository.forceDeleteTask(task.getTaskId());
     }
 
     public void clearCompleted() {

@@ -5,6 +5,7 @@ import android.content.Context;
 import com.yulink.nas.data.model.TransferTask;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +16,7 @@ public class TransferManager {
 
     private final BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
     private final ThreadPoolExecutor executor;
+    private final ConcurrentHashMap<String, TransferWorker> activeWorkers = new ConcurrentHashMap<>();
     private TransferCallback callback;
 
     private TransferManager() {
@@ -35,10 +37,29 @@ public class TransferManager {
 
     public void enqueueTransfer(TransferTask task, TransferWorker.TransferCallback workerCallback, Context context) {
         TransferWorker worker = new TransferWorker(task, workerCallback, context);
-        executor.execute(worker);
+        activeWorkers.put(task.getTaskId(), worker);
+        executor.execute(() -> {
+            try {
+                worker.run();
+            } finally {
+                activeWorkers.remove(task.getTaskId());
+            }
+        });
+    }
+
+    public void cancelTransfer(String taskId) {
+        TransferWorker worker = activeWorkers.get(taskId);
+        if (worker != null) {
+            worker.cancel();
+            activeWorkers.remove(taskId);
+        }
     }
 
     public void cancelAll() {
+        for (TransferWorker worker : activeWorkers.values()) {
+            worker.cancel();
+        }
+        activeWorkers.clear();
         executor.shutdownNow();
     }
 
