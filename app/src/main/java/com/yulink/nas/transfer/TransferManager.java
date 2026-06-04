@@ -1,5 +1,7 @@
 package com.yulink.nas.transfer;
 
+import android.content.Context;
+
 import com.yulink.nas.data.model.TransferTask;
 
 import java.util.concurrent.BlockingQueue;
@@ -31,8 +33,8 @@ public class TransferManager {
         this.callback = callback;
     }
 
-    public void enqueueTransfer(TransferTask task, TransferWorker.TransferCallback workerCallback) {
-        TransferWorker worker = new TransferWorker(task, workerCallback);
+    public void enqueueTransfer(TransferTask task, TransferWorker.TransferCallback workerCallback, Context context) {
+        TransferWorker worker = new TransferWorker(task, workerCallback, context);
         executor.execute(worker);
     }
 

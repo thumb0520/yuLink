@@ -43,7 +43,7 @@ public class TransferNotificationHelper {
                 .build();
     }
 
-    public void showCompletionNotification(TransferTask task) {
+    public void showCompletionNotification(TransferTask task, int notificationId) {
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
@@ -57,10 +57,10 @@ public class TransferNotificationHelper {
                 .setAutoCancel(true)
                 .build();
 
-        notificationManager.notify(task.getNotificationId(), notification);
+        notificationManager.notify(notificationId, notification);
     }
 
-    public void showFailureNotification(TransferTask task, String errorMessage) {
+    public void showFailureNotification(TransferTask task, String errorMessage, int notificationId) {
         Notification notification = new NotificationCompat.Builder(context, YuLinkApp.CHANNEL_ID_TRANSFER)
                 .setSmallIcon(R.drawable.ic_transfer)
                 .setContentTitle(context.getString(R.string.transfer_failed))
@@ -68,7 +68,7 @@ public class TransferNotificationHelper {
                 .setAutoCancel(true)
                 .build();
 
-        notificationManager.notify(task.getNotificationId(), notification);
+        notificationManager.notify(notificationId, notification);
     }
 
     public void cancelNotification(int notificationId) {

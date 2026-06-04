@@ -6,7 +6,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.datasource.DefaultDataSource;
+import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.source.ProgressiveMediaSource;
 import androidx.media3.ui.PlayerView;
 
 import com.yulink.nas.R;
@@ -70,13 +73,24 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 protocolManager.connect(info);
 
                 runOnUiThread(() -> {
-                    player = new ExoPlayer.Builder(this).build();
+                    DefaultLoadControl loadControl = new DefaultLoadControl.Builder()
+                            .setBufferDurationsMs(
+                                    50000,   // minBufferMs: 50s
+                                    100000,  // maxBufferMs: 100s
+                                    5000,    // bufferForPlaybackMs: 5s
+                                    10000    // bufferForPlaybackAfterRebufferMs: 10s
+                            )
+                            .build();
+                    player = new ExoPlayer.Builder(this)
+                            .setLoadControl(loadControl)
+                            .build();
                     playerView.setPlayer(player);
 
-                    NasDataSource.Factory dataSourceFactory = new NasDataSource.Factory(protocolManager, filePath);
-                    MediaItem mediaItem = MediaItem.fromUri(filePath);
+                    NasDataSource.Factory nasDataSourceFactory = new NasDataSource.Factory(protocolManager, filePath);
+                    ProgressiveMediaSource mediaSource = new ProgressiveMediaSource.Factory(nasDataSourceFactory)
+                            .createMediaSource(MediaItem.fromUri(filePath));
 
-                    player.setMediaItem(mediaItem);
+                    player.setMediaSource(mediaSource);
                     player.prepare();
                     player.play();
 

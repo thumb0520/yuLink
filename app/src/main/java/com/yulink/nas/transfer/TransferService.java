@@ -3,8 +3,11 @@ package com.yulink.nas.transfer;
 import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -32,7 +35,12 @@ public class TransferService extends Service implements TransferWorker.TransferC
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(NOTIFICATION_ID, createForegroundNotification());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION_ID, createForegroundNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(NOTIFICATION_ID, createForegroundNotification());
+        }
         return START_STICKY;
     }
 
@@ -44,11 +52,12 @@ public class TransferService extends Service implements TransferWorker.TransferC
 
     public void enqueueTransfer(TransferTask task) {
         transferRepository.addTask(task);
-        transferManager.enqueueTransfer(task, this);
+        transferManager.enqueueTransfer(task, this, this);
     }
 
     @Override
     public void onTransferStarted(TransferTask task) {
+        Log.d("TransferService", "Transfer started: " + task.getFileName());
         updateForegroundNotification(task);
     }
 
@@ -60,23 +69,25 @@ public class TransferService extends Service implements TransferWorker.TransferC
 
     @Override
     public void onTransferCompleted(TransferTask task) {
+        Log.d("TransferService", "Transfer completed: " + task.getFileName());
         transferRepository.updateTaskStatus(task.getTaskId(), TransferTask.Status.COMPLETED, null);
-        notificationHelper.showCompletionNotification(task);
-        checkAndStopService();
+        notificationHelper.showCompletionNotification(task, NOTIFICATION_ID);
+        stopForegroundAndService();
     }
 
     @Override
     public void onTransferFailed(TransferTask task, String error) {
+        Log.e("TransferService", "Transfer failed: " + task.getFileName() + " error=" + error);
         transferRepository.updateTaskStatus(task.getTaskId(), TransferTask.Status.FAILED, error);
-        notificationHelper.showFailureNotification(task, error);
-        checkAndStopService();
+        notificationHelper.showFailureNotification(task, error, NOTIFICATION_ID);
+        stopForegroundAndService();
     }
 
     @Override
     public void onTransferCancelled(TransferTask task) {
         transferRepository.updateTaskStatus(task.getTaskId(), TransferTask.Status.CANCELLED, null);
-        notificationHelper.cancelNotification(task.getNotificationId());
-        checkAndStopService();
+        notificationHelper.cancelNotification(NOTIFICATION_ID);
+        stopForegroundAndService();
     }
 
     private Notification createForegroundNotification() {
@@ -93,11 +104,15 @@ public class TransferService extends Service implements TransferWorker.TransferC
         startForeground(NOTIFICATION_ID, notification);
     }
 
-    private void checkAndStopService() {
-        if (transferManager.getActiveCount() == 0 && transferManager.getQueueSize() == 0) {
-            stopForeground(true);
-            stopSelf();
+    private void stopForegroundAndService() {
+        // Use DETACH to keep completion/failure notification visible after service stops
+        // On MIUI, REMOVE would also dismiss non-foreground notifications
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            stopForeground(STOP_FOREGROUND_DETACH);
+        } else {
+            stopForeground(false);
         }
+        stopSelf();
     }
 
     public class TransferBinder extends Binder {

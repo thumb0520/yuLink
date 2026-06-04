@@ -12,6 +12,7 @@ import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
 import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class SmbProtocolManager implements ProtocolManager {
     private SMBClient smbClient;
@@ -38,7 +40,12 @@ public class SmbProtocolManager implements ProtocolManager {
     public void connect(ConnectionInfo info) throws ProtocolException {
         this.connectionInfo = info;
         try {
-            smbClient = new SMBClient();
+            SmbConfig config = SmbConfig.builder()
+                    .withTimeout(30, TimeUnit.SECONDS)
+                    .withSoTimeout(60, TimeUnit.SECONDS)
+                    .withEncryptData(info.isUseSmbEncryption())
+                    .build();
+            smbClient = new SMBClient(config);
             connection = smbClient.connect(info.getHost(), info.getPort());
 
             AuthenticationContext ac = new AuthenticationContext(
@@ -50,13 +57,37 @@ public class SmbProtocolManager implements ProtocolManager {
 
             String shareName = info.getShareName();
             if (shareName == null || shareName.isEmpty()) {
-                shareName = "C$";
+                throw new ProtocolException("Share name is required for SMB connection");
+            }
+            // Extract share name from full path (e.g. /volume2/DreamHome -> DreamHome)
+            if (shareName.contains("/")) {
+                shareName = shareName.substring(shareName.lastIndexOf('/') + 1);
+            }
+            if (shareName.contains("\\")) {
+                shareName = shareName.substring(shareName.lastIndexOf('\\') + 1);
             }
 
             share = (DiskShare) session.connectShare(shareName);
             connected = true;
+        } catch (ProtocolException e) {
+            throw e;
         } catch (Exception e) {
-            throw new ProtocolException("Failed to connect to SMB server", e);
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("STATUS_LOGON_FAILURE")) {
+                throw new ProtocolException("SMB authentication failed, please check username and password", e);
+            }
+            if (msg != null && msg.contains("STATUS_ACCESS_DENIED")) {
+                throw new ProtocolException("SMB access denied, please check share name and permissions", e);
+            }
+            if (msg != null && msg.contains("STATUS_BAD_NETWORK_NAME")) {
+                String original = info.getShareName();
+                String tried = original;
+                if (original.contains("/")) {
+                    tried = original.substring(original.lastIndexOf('/') + 1);
+                }
+                throw new ProtocolException("Share name '" + tried + "' does not exist on the server, please check the share name", e);
+            }
+            throw new ProtocolException("Failed to connect to SMB server: " + (msg != null ? msg : e.getClass().getSimpleName()), e);
         }
     }
 
@@ -110,7 +141,7 @@ public class SmbProtocolManager implements ProtocolManager {
 
             return result;
         } catch (Exception e) {
-            throw new ProtocolException("Failed to list files", e);
+            throw new ProtocolException("Failed to list files: " + e.getMessage(), e);
         }
     }
 

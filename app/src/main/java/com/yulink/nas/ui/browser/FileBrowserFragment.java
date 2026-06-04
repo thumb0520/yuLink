@@ -1,7 +1,10 @@
 package com.yulink.nas.ui.browser;
 
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +24,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.yulink.nas.R;
 import com.yulink.nas.data.model.NasFile;
+import com.yulink.nas.data.model.TransferTask;
+import com.yulink.nas.transfer.TransferService;
 import com.yulink.nas.ui.browser.adapter.FileListAdapter;
 import com.yulink.nas.ui.browser.dialog.CreateFolderDialog;
 import com.yulink.nas.ui.preview.ImagePreviewActivity;
@@ -42,6 +47,23 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
     private ChipGroup chipGroupBreadcrumb;
     private LinearLayout bottomActionBar;
     private boolean selectionMode = false;
+    private TransferService transferService;
+    private boolean serviceBound = false;
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            TransferService.TransferBinder binder = (TransferService.TransferBinder) service;
+            transferService = binder.getService();
+            serviceBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            transferService = null;
+            serviceBound = false;
+        }
+    };
 
     @Nullable
     @Override
@@ -60,6 +82,11 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         setupRecyclerView();
         setupButtons();
         setupObservers();
+
+        // Start and bind transfer service
+        Intent serviceIntent = new Intent(requireContext(), TransferService.class);
+        requireContext().startService(serviceIntent);
+        requireContext().bindService(serviceIntent, serviceConnection, android.content.Context.BIND_AUTO_CREATE);
 
         // Get connection ID from arguments
         long connectionId = getArguments() != null ? getArguments().getLong("connectionId", -1) : -1;
@@ -240,7 +267,7 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
                     .setTitle(file.getName())
                     .setMessage("是否下载此文件？")
                     .setPositiveButton(R.string.download, (dialog, which) -> {
-                        // TODO: Start download
+                        startDownload(file);
                     })
                     .setNegativeButton(R.string.cancel, null)
                     .show();
@@ -260,6 +287,33 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         // Update ViewModel
     }
 
+    private void startDownload(NasFile file) {
+        if (!serviceBound || transferService == null) {
+            Snackbar.make(requireView(), "传输服务未就绪", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+
+        long connectionId = viewModel.getConnectionInfo().getId();
+        java.io.File downloadDir = new java.io.File(requireContext().getExternalFilesDir(null), "downloads");
+        if (!downloadDir.exists()) {
+            downloadDir.mkdirs();
+        }
+        String destinationPath = new java.io.File(downloadDir, file.getName()).getAbsolutePath();
+
+        TransferTask task = new TransferTask(
+                connectionId,
+                TransferTask.Direction.DOWNLOAD,
+                file.getFullPath(),
+                destinationPath,
+                file.getName(),
+                file.getSize()
+        );
+        task.setNotificationId((int) (System.currentTimeMillis() % Integer.MAX_VALUE));
+
+        transferService.enqueueTransfer(task);
+        Snackbar.make(requireView(), "开始下载: " + file.getName(), Snackbar.LENGTH_SHORT).show();
+    }
+
     private void openPreview(NasFile file) {
         Intent intent;
         if (file.isImage()) {
@@ -274,5 +328,14 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         intent.putExtra("fileName", file.getName());
         intent.putExtra("connectionId", viewModel.getConnectionInfo().getId());
         startActivity(intent);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (serviceBound) {
+            requireContext().unbindService(serviceConnection);
+            serviceBound = false;
+        }
     }
 }

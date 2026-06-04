@@ -130,7 +130,7 @@ public class FileBrowserViewModel extends AndroidViewModel {
     public void navigateTo(String path) {
         if (protocolManager == null) return;
 
-        loadingLiveData.setValue(true);
+        loadingLiveData.postValue(true);
         executor.execute(() -> {
             try {
                 List<NasFile> files = protocolManager.listFiles(path);

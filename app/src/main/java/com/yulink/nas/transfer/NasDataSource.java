@@ -10,6 +10,7 @@ import androidx.media3.datasource.TransferListener;
 
 import com.yulink.nas.protocol.ProtocolManager;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -28,10 +29,11 @@ public class NasDataSource implements DataSource {
     @Override
     public long open(DataSpec dataSpec) throws IOException {
         try {
-            inputStream = protocolManager.openFileStream(remotePath);
+            InputStream rawStream = protocolManager.openFileStream(remotePath);
             if (dataSpec.position > 0) {
-                inputStream.skip(dataSpec.position);
+                rawStream.skip(dataSpec.position);
             }
+            inputStream = new BufferedInputStream(rawStream, 128 * 1024); // 128KB buffer
             bytesRemaining = dataSpec.length == C.LENGTH_UNSET ? C.LENGTH_UNSET : dataSpec.length;
             opened = true;
             return bytesRemaining;
@@ -74,7 +76,7 @@ public class NasDataSource implements DataSource {
     @Nullable
     @Override
     public Uri getUri() {
-        return null;
+        return Uri.parse("nas://" + remotePath);
     }
 
     @Override

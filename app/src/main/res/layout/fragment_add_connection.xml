@@ -450,7 +450,7 @@
                             android:layout_weight="1"
                             android:background="@null"
                             android:fontFamily="sans-serif"
-                            android:hint="share"
+                            android:hint="@string/share_name_hint"
                             android:inputType="text"
                             android:textColor="@color/label"
                             android:textColorHint="@color/system_gray3"
