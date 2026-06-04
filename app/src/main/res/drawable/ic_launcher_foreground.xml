@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 云朵主体 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M72,42 C72,35.4 66.6,30 60,30 C57.6,30 55.4,30.6 53.4,31.6 C49.8,25.6 43.4,22 36,22 C25.5,22 17,30.5 17,41 C17,41.4 17,41.8 17,42.2 C12.6,43.4 9,47.4 9,52 C9,57.5 13.5,62 19,62 L69,62 C74.5,62 79,57.5 79,52 C79,47.4 75.4,43.4 71,42.2 L72,42 Z" />
+
+    <!-- 服务器机箱 1 -->
+    <path
+        android:fillColor="#bbdefb"
+        android:pathData="M29,48 L59,48 C60.1,48 61,47.1 61,46 L61,46 C61,44.9 60.1,44 59,44 L29,44 C27.9,44 27,44.9 27,46 L27,46 C27,47.1 27.9,48 29,48 Z" />
+
+    <!-- 服务器指示灯 1 -->
+    <path
+        android:fillColor="#4caf50"
+        android:pathData="M31,46 C31,45.4 31.4,45 32,45 C32.6,45 33,45.4 33,46 C33,46.6 32.6,47 32,47 C31.4,47 31,46.6 31,46 Z" />
+
+    <!-- 服务器机箱 2 -->
+    <path
+        android:fillColor="#90caf9"
+        android:pathData="M29,54 L59,54 C60.1,54 61,53.1 61,52 L61,52 C61,50.9 60.1,50 59,50 L29,50 C27.9,50 27,50.9 27,52 L27,52 C27,53.1 27.9,54 29,54 Z" />
+
+    <!-- 服务器指示灯 2 -->
+    <path
+        android:fillColor="#4caf50"
+        android:pathData="M31,52 C31,51.4 31.4,51 32,51 C32.6,51 33,51.4 33,52 C33,52.6 32.6,53 32,53 C31.4,53 31,52.6 31,52 Z" />
+
+    <!-- 连接线 -->
+    <path
+        android:strokeColor="#64b5f6"
+        android:strokeWidth="2"
+        android:pathData="M44,62 L44,70 L54,75 L44,80 L44,88" />
+
+    <!-- 手机设备 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M48,88 L60,88 C61.1,88 62,87.1 62,86 L62,78 C62,76.9 61.1,76 60,76 L48,76 C46.9,76 46,76.9 46,78 L46,86 C46,87.1 46.9,88 48,88 Z" />
+
+    <!-- 手机屏幕 -->
+    <path
+        android:fillColor="#bbdefb"
+        android:pathData="M48,78 L60,78 L60,85 L48,85 Z" />
+
+    <!-- WiFi 信号 -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M51,72 Q54,69 57,72" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:pathData="M49,70 Q54,65 59,70" />
+</vector>
