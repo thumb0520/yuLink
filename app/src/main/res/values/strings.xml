@@ -63,6 +63,7 @@
     <string name="image_preview">图片预览</string>
     <string name="video_player">视频播放</string>
     <string name="audio_player">音乐播放</string>
+    <string name="fullscreen">全屏</string>
 
     <!-- Settings -->
     <string name="settings">设置</string>
