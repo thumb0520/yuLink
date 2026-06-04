@@ -1,7 +1,7 @@
-# EasyConnect - Android NAS 文件管理器
+# YuLink - Android NAS 文件管理器
 
 <p align="center">
-  <img src="app/src/main/res/drawable/ic_launcher_foreground.xml" width="120" alt="EasyConnect Logo">
+  <img src="app/src/main/res/drawable/ic_launcher_foreground.xml" width="120" alt="YuLink Logo">
 </p>
 
 <p align="center">
@@ -88,8 +88,8 @@
 ## 📦 项目结构
 
 ```
-app/src/main/java/com/easyconnect/nas/
-├── EasyConnectApp.java                 # Application 入口
+app/src/main/java/com/yulink/nas/
+├── YuLinkApp.java                 # Application 入口
 │
 ├── data/                               # 数据层
 │   ├── model/                          # 数据模型
@@ -177,8 +177,8 @@ app/src/main/java/com/easyconnect/nas/
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/yourusername/EasyConnect.git
-   cd EasyConnect
+   git clone https://github.com/yourusername/YuLink.git
+   cd YuLink
    ```
 
 2. **使用 Android Studio 打开项目**
@@ -293,7 +293,7 @@ Release 版本会自动混淆。关键库的 keep 规则已配置在 `app/progua
 
 ### 报告问题
 
-请使用 [GitHub Issues](https://github.com/yourusername/EasyConnect/issues) 报告问题，包含：
+请使用 [GitHub Issues](https://github.com/yourusername/YuLink/issues) 报告问题，包含：
 
 - 设备型号和 Android 版本
 - 应用版本

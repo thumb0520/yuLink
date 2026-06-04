@@ -94,5 +94,5 @@
 
 ## 链接
 
-- [GitHub Releases](https://github.com/yourusername/EasyConnect/releases)
-- [下载页面](https://github.com/yourusername/EasyConnect/releases/latest)
+- [GitHub Releases](https://github.com/yourusername/NasLink/releases)
+- [下载页面](https://github.com/yourusername/NasLink/releases/latest)

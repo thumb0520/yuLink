@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Bottom Navigation Text Styles -->
-    <style name="Widget.EasyConnect.BottomNav.Text.Active" parent="TextAppearance.Material3.LabelMedium">
+    <style name="Widget.YuLink.BottomNav.Text.Active" parent="TextAppearance.Material3.LabelMedium">
         <item name="android:textSize">10sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
-    <style name="Widget.EasyConnect.BottomNav.Text.Inactive" parent="TextAppearance.Material3.LabelMedium">
+    <style name="Widget.YuLink.BottomNav.Text.Inactive" parent="TextAppearance.Material3.LabelMedium">
         <item name="android:textSize">10sp</item>
         <item name="android:fontFamily">sans-serif</item>
     </style>

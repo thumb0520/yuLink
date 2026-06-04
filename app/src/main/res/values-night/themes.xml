@@ -13,7 +13,7 @@
     <color name="system_gray5_dark">#2C2C2E</color>
     <color name="system_gray6_dark">#1C1C1E</color>
 
-    <style name="Theme.EasyConnect" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.YuLink" parent="Theme.Material3.Dark.NoActionBar">
         <!-- Primary colors -->
         <item name="colorPrimary">#0A84FF</item>
         <item name="colorPrimaryVariant">#409CFF</item>

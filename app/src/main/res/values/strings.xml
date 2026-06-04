@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">EasyConnect</string>
+    <string name="app_name">YuLink</string>
 
     <!-- Bottom Navigation -->
     <string name="nav_connections">连接</string>

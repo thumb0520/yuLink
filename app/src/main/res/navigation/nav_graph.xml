@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/connectionListFragment"
-        android:name="com.easyconnect.nas.ui.connection.ConnectionListFragment"
+        android:name="com.yulink.nas.ui.connection.ConnectionListFragment"
         android:label="@string/nav_connections"
         tools:layout="@layout/fragment_connection_list">
         <action
@@ -20,7 +20,7 @@
 
     <fragment
         android:id="@+id/addConnectionFragment"
-        android:name="com.easyconnect.nas.ui.connection.AddConnectionFragment"
+        android:name="com.yulink.nas.ui.connection.AddConnectionFragment"
         android:label="@string/add_connection"
         tools:layout="@layout/fragment_add_connection">
         <argument
@@ -31,7 +31,7 @@
 
     <fragment
         android:id="@+id/fileBrowserFragment"
-        android:name="com.easyconnect.nas.ui.browser.FileBrowserFragment"
+        android:name="com.yulink.nas.ui.browser.FileBrowserFragment"
         android:label="@string/nav_browser"
         tools:layout="@layout/fragment_file_browser">
         <argument
@@ -46,13 +46,13 @@
 
     <fragment
         android:id="@+id/transferQueueFragment"
-        android:name="com.easyconnect.nas.ui.transfer.TransferQueueFragment"
+        android:name="com.yulink.nas.ui.transfer.TransferQueueFragment"
         android:label="@string/nav_transfers"
         tools:layout="@layout/fragment_transfer_queue" />
 
     <fragment
         android:id="@+id/settingsFragment"
-        android:name="com.easyconnect.nas.ui.settings.SettingsFragment"
+        android:name="com.yulink.nas.ui.settings.SettingsFragment"
         android:label="@string/settings"
         tools:layout="@layout/fragment_settings" />
 </navigation>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.EasyConnect" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.YuLink" parent="Theme.Material3.Light.NoActionBar">
         <!-- Primary colors -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_variant</item>
@@ -21,7 +21,7 @@
     </style>
 
     <!-- Button style -->
-    <style name="Widget.EasyConnect.Button" parent="Widget.Material3.Button">
+    <style name="Widget.YuLink.Button" parent="Widget.Material3.Button">
         <item name="cornerRadius">10dp</item>
         <item name="android:textSize">17sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
