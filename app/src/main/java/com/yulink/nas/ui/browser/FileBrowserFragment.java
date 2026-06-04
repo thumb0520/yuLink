@@ -185,7 +185,9 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
     private void updateBreadcrumb(String path) {
         chipGroupBreadcrumb.removeAllViews();
 
-        String[] segments = path.split("/");
+        // Normalize: SMB paths use "\", display paths use "/"
+        String normalizedPath = path.replace("\\", "/");
+        String[] segments = normalizedPath.split("/");
         StringBuilder currentPath = new StringBuilder();
 
         // Root chip
@@ -223,7 +225,7 @@ public class FileBrowserFragment extends Fragment implements FileListAdapter.OnF
         viewModel.clearSelection();
         bottomActionBar.setVisibility(View.GONE);
         String currentPath = viewModel.getCurrentPath().getValue();
-        tvTitle.setText(currentPath != null ? currentPath : "/");
+        tvTitle.setText(currentPath != null ? currentPath.replace("\\", "/") : "/");
     }
 
     private void showSortDialog() {
