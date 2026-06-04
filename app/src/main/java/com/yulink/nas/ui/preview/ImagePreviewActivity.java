@@ -1,6 +1,8 @@
 package com.yulink.nas.ui.preview;
 
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -8,27 +10,31 @@ import android.widget.ProgressBar;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.yulink.nas.R;
 import com.yulink.nas.data.db.AppDatabase;
 import com.yulink.nas.data.db.entity.ConnectionEntity;
 import com.yulink.nas.data.model.ConnectionInfo;
-import com.yulink.nas.data.model.ProtocolType;
 import com.yulink.nas.protocol.ProtocolException;
 import com.yulink.nas.protocol.ProtocolFactory;
 import com.yulink.nas.protocol.ProtocolManager;
 import com.yulink.nas.util.CryptoUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ImagePreviewActivity extends AppCompatActivity {
+    private static final String TAG = "ImagePreviewActivity";
+    private static final int BUFFER_SIZE = 64 * 1024; // 64KB
+
     private ImageView imageView;
     private ProgressBar progressBar;
     private ProtocolManager protocolManager;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private File tempFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,23 +84,42 @@ public class ImagePreviewActivity extends AppCompatActivity {
                 protocolManager = ProtocolFactory.create(entity.protocol);
                 protocolManager.connect(info);
 
-                InputStream stream = protocolManager.openFileStream(filePath);
+                // Download to temp file first — Glide needs mark/reset support
+                // and efficient seeking, which SMB streams don't provide
+                tempFile = new File(getCacheDir(), "preview_" + System.currentTimeMillis());
+                try (InputStream in = protocolManager.openFileStream(filePath);
+                     FileOutputStream out = new FileOutputStream(tempFile)) {
+                    byte[] buf = new byte[BUFFER_SIZE];
+                    int len;
+                    while ((len = in.read(buf)) != -1) {
+                        out.write(buf, 0, len);
+                    }
+                    out.flush();
+                }
+
+                Log.d(TAG, "Image downloaded to temp file: " + tempFile.length() + " bytes");
+
+                // Disconnect SMB — we no longer need it
+                protocolManager.disconnect();
+                protocolManager = null;
 
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
-                    Glide.with(this)
-                            .load(stream)
-                            .diskCacheStrategy(DiskCacheStrategy.NONE)
-                            .skipMemoryCache(true)
+                    Glide.with(ImagePreviewActivity.this)
+                            .load(tempFile)
                             .into(imageView);
                 });
 
             } catch (ProtocolException e) {
+                Log.e(TAG, "Failed to load image: " + e.getMessage(), e);
+                cleanup();
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     finish();
                 });
             } catch (Exception e) {
+                Log.e(TAG, "Failed to load image: " + e.getMessage(), e);
+                cleanup();
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     finish();
@@ -103,11 +128,20 @@ public class ImagePreviewActivity extends AppCompatActivity {
         });
     }
 
+    private void cleanup() {
+        if (protocolManager != null) {
+            try { protocolManager.disconnect(); } catch (Exception ignored) {}
+            protocolManager = null;
+        }
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (protocolManager != null) {
-            protocolManager.disconnect();
+        cleanup();
+        // Delete temp file
+        if (tempFile != null && tempFile.exists()) {
+            tempFile.delete();
         }
     }
 }
