@@ -106,15 +106,25 @@ public class TransferAdapter extends ListAdapter<TransferTask, TransferAdapter.V
                     break;
             }
 
-            // Progress
-            int progress = task.getProgressPercent();
-            progressBar.setProgress(progress);
-            tvProgress.setText(PathUtils.formatSize(task.getTransferredBytes()) + " / " +
-                    PathUtils.formatSize(task.getTotalBytes()));
+            // Progress - hide for completed/failed/cancelled tasks
+            boolean isActive = task.getStatus() == TransferTask.Status.RUNNING ||
+                    task.getStatus() == TransferTask.Status.QUEUED;
+            if (isActive) {
+                int progress = task.getProgressPercent();
+                progressBar.setProgress(progress);
+                progressBar.setVisibility(View.VISIBLE);
+                tvProgress.setText(PathUtils.formatSize(task.getTransferredBytes()) + " / " +
+                        PathUtils.formatSize(task.getTotalBytes()));
+                tvProgress.setVisibility(View.VISIBLE);
+                tvSpeed.setVisibility(View.VISIBLE);
+            } else {
+                progressBar.setVisibility(View.GONE);
+                tvProgress.setVisibility(View.GONE);
+                tvSpeed.setVisibility(View.GONE);
+            }
 
             // Cancel button
-            boolean canCancel = task.getStatus() == TransferTask.Status.RUNNING ||
-                    task.getStatus() == TransferTask.Status.QUEUED;
+            boolean canCancel = isActive;
             btnCancel.setVisibility(canCancel ? View.VISIBLE : View.GONE);
             btnCancel.setOnClickListener(v -> listener.onCancelClick(task));
         }
